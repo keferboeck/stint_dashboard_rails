@@ -1,0 +1,55 @@
+<!-- app/views/admin/settings/show.html.erb -->
+<div class="max-w-3xl mx-auto space-y-8">
+  <h1 class="text-h3">Settings</h1>
+
+  <!-- General -->
+  <div class="border border-white/10 rounded-lg p-5 space-y-4">
+    <h2 class="text-h4">General</h2>
+    <%= form_with model: @settings, url: admin_settings_path, method: :patch, class: "space-y-4" do |f| %>
+      <div>
+        <%= f.label :timezone, "Send emails according to timezone", class: "block text-sm mb-1" %>
+        <%= f.select :timezone, [["Europe/London","Europe/London"]], {}, class: "w-full bg-white/5 border border-white/10 rounded px-3 py-2" %>
+      </div>
+      <%= f.submit "Save", class: "px-4 py-2 rounded bg-brand-green text-black font-medium" %>
+    <% end %>
+  </div>
+
+  <!-- Safety Controls -->
+  <div class="border border-white/10 rounded-lg p-5 space-y-6">
+    <h2 class="text-h4">Safety controls</h2>
+
+    <div class="space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="font-medium">Put all schedules on hold</div>
+          <div class="text-sm text-white/60">Prevents any sending until you release again.</div>
+        </div>
+        <%= button_to "Hold all", hold_all_schedules_admin_settings_path,
+                      method: :post,
+                      data: { turbo_confirm: "Are you sure? This pauses all sending." },
+                      class: "px-3 py-2 bg-white/10 rounded hover:bg-white/20" %>
+      </div>
+
+      <div class="pt-3 border-t border-white/10">
+        <div class="font-medium text-red-300">Delete future scheduled campaigns</div>
+        <div class="text-sm text-white/60 mb-2">This will remove future campaigns and their pending emails.</div>
+        <%= form_with url: purge_future_schedules_admin_settings_path, method: :delete, class: "flex items-center gap-2" do |f| %>
+          <%= hidden_field_tag :confirm, "YES" %>
+          <%= button_tag "Purge future (type=YES preset)", data: { turbo_confirm: "Really delete future campaigns?" }, class: "px-3 py-2 bg-red-600/20 text-red-200 rounded hover:bg-red-600/30" %>
+        <% end %>
+      </div>
+
+      <div class="pt-3 border-t border-white/10 flex items-center justify-between">
+        <div>
+          <div class="font-medium">Cron runner</div>
+          <div class="text-sm text-white/60">Current: <span class="px-2 py-0.5 bg-white/10 rounded"><%= @settings.cron_enabled ? "ENABLED" : "DISABLED" %></span></div>
+        </div>
+        <%= button_to (@settings.cron_enabled ? "Disable cron" : "Enable cron"),
+                      toggle_cron_admin_settings_path,
+                      method: :post,
+                      data: { turbo_confirm: "Are you sure? This flips the cron flag." },
+                      class: "px-3 py-2 bg-white/10 rounded hover:bg-white/20" %>
+      </div>
+    </div>
+  </div>
+</div>

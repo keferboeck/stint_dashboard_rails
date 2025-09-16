@@ -1,11 +1,16 @@
-<% flash.each do |type, message| %>
-  <% tone =
-       case type.to_s
-       when "notice" then "bg-brand-green/15 text-brand-white"
-       when "alert", "error" then "bg-red-500/15 text-red-200"
-       else "bg-white/10 text-white/90"
-       end %>
-  <div class="mb-3 px-3 py-2 rounded-lg <%= tone %>">
-    <%= message %>
-  </div>
-<% end %>
+<div class="fixed top-4 right-4 z-50 space-y-2">
+  <% flash.each do |type, message| %>
+    <% tone =
+         case type.to_s
+         when "notice" then "bg-brand-green/20 text-brand-white border border-brand-green/40"
+         when "alert", "error" then "bg-red-500/20 text-red-200 border border-red-500/40"
+         else "bg-white/10 text-white/90 border border-white/20"
+         end %>
+    <div
+      data-controller="flash"
+      class="px-4 py-2 rounded-lg shadow-lg <%= tone %> animate-slide-in"
+    >
+      <%= message %>
+    </div>
+  <% end %>
+</div>

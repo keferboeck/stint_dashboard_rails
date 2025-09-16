@@ -10,9 +10,17 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_09_15_221813) do
+ActiveRecord::Schema[8.0].define(version: 2025_09_16_172812) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "app_settings", force: :cascade do |t|
+    t.string "timezone", default: "Europe/London", null: false
+    t.boolean "scheduling_on_hold", default: false, null: false
+    t.boolean "cron_enabled", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
 
   create_table "campaigns", force: :cascade do |t|
     t.string "name"
@@ -57,6 +65,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_15_221813) do
     t.datetime "last_sign_in_at"
     t.string "current_sign_in_ip"
     t.string "last_sign_in_ip"
+    t.boolean "notify_new_scheduled_all", default: false, null: false
+    t.boolean "notify_copy_all", default: false, null: false
+    t.boolean "notify_summary_all", default: false, null: false
+    t.boolean "notify_new_scheduled_mine", default: false, null: false
+    t.boolean "notify_copy_mine", default: false, null: false
+    t.boolean "notify_summary_mine", default: false, null: false
+    t.string "preferred_time_zone", default: "Europe/London", null: false
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
     t.index ["role"], name: "index_users_on_role"

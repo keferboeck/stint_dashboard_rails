@@ -1,42 +1,64 @@
+# app/controllers/admin/users_controller.rb
 class Admin::UsersController < ApplicationController
+  before_action :authenticate_user!
   before_action :require_admin!
+  before_action :set_user, only: %i[edit update]
+
+  def index
+    @users = User.order(:email)
+  end
 
   def new
-    # build later if you add a form; for now can return JSON or render a view
+    @user = User.new(role: "viewer")
   end
 
   def create
-    permitted = params.permit(:first_name, :last_name, :position, :email, :role)
-    role = (permitted[:role].presence || "viewer").to_s
+    @user = User.new(user_params)
+    # Generate a temporary password (device email can be added later)
+    temp_password = SecureRandom.base58(16)
+    @user.password = @user.password_confirmation = temp_password
 
-    unless %w[admin manager viewer].include?(role)
-      return render json: { error: "invalid role" }, status: :unprocessable_entity
-    end
-
-    temp_password = SecureRandom.base58(14)
-
-    user = User.new(
-      first_name: permitted[:first_name],
-      last_name:  permitted[:last_name],
-      position:   permitted[:position],
-      email:      permitted[:email],
-      role:       role,
-      password:   temp_password,
-      password_confirmation: temp_password
-    )
-
-    if user.save
-      # Send “admin created your account” email (deliver_later uses your configured adapters)
-      UserMailer.admin_created(user.id, temp_password).deliver_later
-      respond_to do |format|
-        format.html { redirect_to dashboard_path, notice: "User created and email sent." }
-        format.json { render json: { id: user.id, email: user.email }, status: :created }
-      end
+    if @user.save
+      flash[:notice] = "User created. Temporary password generated."
+      redirect_to admin_users_path
     else
-      respond_to do |format|
-        format.html { redirect_to dashboard_path, alert: user.errors.full_messages.to_sentence }
-        format.json { render json: { error: user.errors.full_messages }, status: :unprocessable_entity }
-      end
+      flash.now[:alert] = @user.errors.full_messages.to_sentence
+      render :new, status: :unprocessable_entity
     end
+  end
+
+  def edit; end
+
+  def update
+    if @user.update(user_params)
+      flash[:notice] = "User updated."
+      redirect_to admin_users_path
+    else
+      flash.now[:alert] = @user.errors.full_messages.to_sentence
+      render :edit, status: :unprocessable_entity
+    end
+  end
+
+  private
+
+  def set_user
+    @user = User.find(params[:id])
+  end
+
+  def require_admin!
+    return if current_user&.admin?
+    redirect_to dashboard_path, alert: "Not authorized."
+  end
+
+  def user_params
+    params.require(:user).permit(
+      :first_name, :last_name, :email, :role,
+      :notify_all_new_schedules,
+      :notify_all_sent_copies,
+      :notify_all_campaign_summaries,
+      :notify_own_new_schedules,
+      :notify_own_sent_copies,
+      :notify_own_campaign_summaries
+    )
   end
 end

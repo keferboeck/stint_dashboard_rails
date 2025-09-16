@@ -9,6 +9,20 @@ module.exports = {
   theme: {
     // Extend config
     extend: {
+      keyframes: {
+        'slide-in': {
+          '0%': { transform: 'translateY(-10px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        'fade-out': {
+          '0%': { opacity: '1' },
+          '100%': { opacity: '0' },
+        }
+      },
+      animation: {
+        'slide-in': 'slide-in 0.3s ease-out',
+        'fade-out': 'fade-out 0.5s ease-in forwards',
+      },
       container: {
         center: true,
         padding: '0rem',
