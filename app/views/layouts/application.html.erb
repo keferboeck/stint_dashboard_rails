@@ -1,31 +1,53 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title><%= content_for(:title) || "Stint Dashboard" %></title>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    <%= csrf_meta_tags %>
-    <%= csp_meta_tag %>
+<head>
+  <title>Stint Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
 
-    <%= yield :head %>
+  <%= csrf_meta_tags %>
+  <%= csp_meta_tag %>
 
-    <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
-    <%#= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
+  <!-- Tailwind build -->
+  <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+</head>
 
-    <link rel="icon" href="/icon.png" type="image/png">
-    <link rel="icon" href="/icon.svg" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="/icon.png">
+<%# If signed in, render the app shell with sidebar; otherwise render a clean auth page %>
+<body class="min-h-screen bg-[#0a0a0a] text-brand-white font-sans">
+<% if user_signed_in? %>
+  <div class="min-h-screen flex">
+    <aside class="w-64 bg-brand-black/90 border-r border-white/10 hidden md:flex md:flex-col">
+      <%= render "shared/sidebar" %>
+    </aside>
 
-    <%# Includes all stylesheet files in app/assets/stylesheets %>
-    <%#= stylesheet_link_tag :app %>
+    <div class="flex-1 flex flex-col min-w-0">
+      <header class="sticky top-0 z-10 backdrop-blur bg-black/40 border-b border-white/10">
+        <div class="px-4 md:px-6 h-14 flex items-center justify-between">
+          <div class="text-sm text-white/70">
+            <%= render "shared/flash" %>
+          </div>
+          <div class="flex items-center gap-3">
+                <span class="text-sm text-white/80">
+                  <%= current_user.first_name %> <%= current_user.last_name %>
+                </span>
+            <span class="px-2 py-0.5 rounded-full text-xs bg-white/10 text-white/80 uppercase tracking-wide">
+                  <%= current_user.role %>
+                </span>
+          </div>
+        </div>
+      </header>
 
-    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
-  </head>
-
-  <body>
-    <main class="container mx-auto mt-28 px-5 flex">
-      <%= yield %>
-    </main>
-  </body>
+      <main class="p-4 md:p-8">
+        <%= yield %>
+      </main>
+    </div>
+  </div>
+<% else %>
+  <div class="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
+    <!-- nice subtle gradient dots bg -->
+    <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(164,158,242,.15),transparent_40%),radial-gradient(circle_at_80%_20%,rgba(22,233,144,.12),transparent_35%)]"></div>
+    <%= render "shared/flash" %>
+    <%= yield %>
+  </div>
+<% end %>
+</body>
 </html>

@@ -8,4 +8,17 @@ class User < ApplicationRecord
   validates :first_name, presence: true
   validates :last_name,  presence: true
   validates :role,       presence: true
+
+  # --- role helpers (works whether role is a string or an enum/integer) ---
+  def admin?
+    role.to_s == "admin"
+  end
+
+  def manager?
+    role.to_s == "manager"
+  end
+
+  def viewer?
+    role.to_s == "viewer"
+  end
 end

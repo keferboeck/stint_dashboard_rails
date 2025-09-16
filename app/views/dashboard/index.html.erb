@@ -1,20 +1,31 @@
-<div class="dashboard-container">
-  <h1>Welcome, <%= current_user.first_name %> <%= current_user.last_name %></h1>
+<div class="space-y-6">
+  <div>
+    <h1 class="text-h3 font-semibold">Welcome, <%= current_user.first_name %></h1>
+    <p class="text-white/60">Here’s a quick snapshot.</p>
+  </div>
 
-  <p class="text-muted">
-    You are signed in as <strong><%= current_user.role.capitalize %></strong>.
-  </p>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="rounded-2xl bg-white/5 border border-white/10 p-5">
+      <div class="text-sm text-white/60 mb-2">Campaigns</div>
+      <div class="text-3xl font-semibold">—</div>
+    </div>
 
-  <hr>
+    <div class="rounded-2xl bg-white/5 border border-white/10 p-5">
+      <div class="text-sm text-white/60 mb-2">Scheduled</div>
+      <div class="text-3xl font-semibold">—</div>
+    </div>
 
-  <div class="dashboard-links">
-    <h2>Quick Access</h2>
-    <ul>
-      <li><%= link_to "Campaigns", admin_campaigns_path %></li>
-      <% if admin? %>
-        <li><%= link_to "Manage Users", new_admin_user_path %></li>
-      <% end %>
-      <li><%= link_to "Sign out", destroy_user_session_path, method: :delete, data: { confirm: "Are you sure you want to log out?" } %></li>
-    </ul>
+    <div class="rounded-2xl bg-white/5 border border-white/10 p-5">
+      <div class="text-sm text-white/60 mb-2">Delivered (24h)</div>
+      <div class="text-3xl font-semibold">—</div>
+    </div>
+  </div>
+
+  <div class="rounded-2xl bg-white/5 border border-white/10 p-5">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xl font-semibold">Recent activity</h2>
+      <%= link_to "View campaigns", admin_campaigns_path, class: "text-sm text-brand-purple hover:underline" %>
+    </div>
+    <div class="text-white/60 text-sm">Nothing here yet.</div>
   </div>
 </div>
