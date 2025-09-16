@@ -1,24 +1,20 @@
 # README
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+## Development environment:
 
-Things you may want to cover:
+```
+bin/dev
+```
 
-* Ruby version
+```
+# one-off build
+npm run tailwind:build
+# or live watcher (in a separate terminal)
+npm run tailwind:watch
+```
 
-* System dependencies
-
-* Configuration
-
-* Database creation
-
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
+```
+# or in two tabs:
+bin/rails tailwindcss:watch
+bin/rails s
+```

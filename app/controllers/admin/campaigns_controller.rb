@@ -1,10 +1,21 @@
 class Admin::CampaignsController < ApplicationController
-  before_action :require_admin!
+  before_action :require_manager_or_admin!, only: [:new, :create, :reschedule, :send_now, :destroy]
 
   def index
-    @future = Campaign.where(status: 'SCHEDULED').order(:scheduled_at)
-    @past   = Campaign.where(status: %w[SENT FAILED]).order(scheduled_at: :desc)
-    render json: { future: @future, past: @past }
+    @future = Campaign.where(status: "SCHEDULED").order(:scheduled_at)
+    @past   = Campaign.where(status: %w[SENT FAILED PARTIAL]).order(scheduled_at: :desc)
+    respond_to do |format|
+      format.html # render view if you have one
+      format.json { render json: { future: @future, past: @past } }
+    end
+  end
+
+  def show
+    @campaign = Campaign.includes(:emails).find(params[:id])
+    respond_to do |format|
+      format.html
+      format.json { render json: @campaign.as_json(include: :emails) }
+    end
   end
 
   def new
@@ -49,11 +60,6 @@ class Admin::CampaignsController < ApplicationController
     c = Campaign.find(params[:id])
     CampaignTriggerJob.perform_later(c.id)
     render json: { enqueued: true }
-  end
-
-  def show
-    c = Campaign.includes(:emails).find(params[:id])
-    render json: c.as_json(include: :emails)
   end
 
   def destroy

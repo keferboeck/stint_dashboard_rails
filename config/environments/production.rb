@@ -83,4 +83,16 @@ Rails.application.configure do
   #
   # Skip DNS rebinding protection for the default health check endpoint.
   # config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
+  # Deliver via Mandrill SMTP using only MANDRILL_API_KEY
+  config.action_mailer.perform_caching = false
+  config.action_mailer.raise_delivery_errors = true
+  config.action_mailer.delivery_method = :smtp
+  config.action_mailer.smtp_settings = {
+    address:              "smtp.mandrillapp.com",
+    port:                 587,
+    user_name:            "mandrill",                 # Mandrill accepts any string or your account email
+    password:             ENV.fetch("MANDRILL_API_KEY"),
+    authentication:       :login,
+    enable_starttls_auto: true
+  }
 end

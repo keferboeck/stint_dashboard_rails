@@ -4,7 +4,6 @@ def ensure_admin!(first_name:, last_name:, position:, email:)
   u = User.find_or_initialize_by(email: email)
   u.first_name = first_name
   u.last_name  = last_name
-  u.position   = position
   u.role       = "admin"
   u.password   = "StintDashboard!!x"
   u.password_confirmation = "StintDashboard!!x"

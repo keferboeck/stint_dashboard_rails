@@ -1,0 +1,11 @@
+<%= render layout: 'layouts/mailer' do %>
+  <mj-text font-size="18px" font-weight="600">Welcome to Stint Dashboard</mj-text>
+  <mj-text>Hello <%= @user.first_name %>,</mj-text>
+  <mj-text>An administrator has created your account. Use these credentials to sign in:</mj-text>
+  <mj-text>
+    <strong>Email:</strong> <%= @user.email %><br/>
+    <strong>Temporary password:</strong> <%= @plain_password %>
+  </mj-text>
+  <mj-button href="<%= new_user_session_url %>">Sign in</mj-button>
+  <mj-text class="muted">Please sign in and change your password right away.</mj-text>
+<% end %>
