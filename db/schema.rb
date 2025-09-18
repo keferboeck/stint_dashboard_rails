@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_09_16_172812) do
+ActiveRecord::Schema[8.0].define(version: 2025_09_16_215828) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -49,6 +49,27 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_16_172812) do
     t.index ["status"], name: "index_emails_on_status"
   end
 
+  create_table "temp_recipients", force: :cascade do |t|
+    t.bigint "temp_upload_id", null: false
+    t.string "email", null: false
+    t.jsonb "fields", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["temp_upload_id", "email"], name: "index_temp_recipients_on_temp_upload_id_and_email"
+    t.index ["temp_upload_id"], name: "index_temp_recipients_on_temp_upload_id"
+  end
+
+  create_table "temp_uploads", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "token", null: false
+    t.string "filename"
+    t.integer "row_count", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["token"], name: "index_temp_uploads_on_token", unique: true
+    t.index ["user_id"], name: "index_temp_uploads_on_user_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "email", default: "", null: false
     t.string "encrypted_password", default: "", null: false
@@ -78,4 +99,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_16_172812) do
   end
 
   add_foreign_key "emails", "campaigns"
+  add_foreign_key "temp_recipients", "temp_uploads"
+  add_foreign_key "temp_uploads", "users"
 end

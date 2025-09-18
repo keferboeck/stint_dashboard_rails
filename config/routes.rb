@@ -35,6 +35,14 @@ Rails.application.routes.draw do
       post :reschedule, on: :member
       post :send_now,   on: :member
     end
+
+    resource :campaign_wizard do
+      post :upload_csv
+      get  :preview
+      post :configure
+      post :finalize
+      delete :cancel
+    end
   end
 
   get "/health", to: proc { [200, { "Content-Type" => "application/json" }, [{ ok: true }.to_json]] }

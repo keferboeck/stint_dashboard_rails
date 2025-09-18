@@ -1,3 +1,4 @@
+# app/controllers/admin/campaigns_controller.rb
 class Admin::CampaignsController < ApplicationController
   before_action :require_manager_or_admin!, only: [:new, :create, :reschedule, :send_now, :destroy]
 
@@ -5,7 +6,7 @@ class Admin::CampaignsController < ApplicationController
     @future = Campaign.where(status: "SCHEDULED").order(:scheduled_at)
     @past   = Campaign.where(status: %w[SENT FAILED PARTIAL]).order(scheduled_at: :desc)
     respond_to do |format|
-      format.html # render view if you have one
+      format.html
       format.json { render json: { future: @future, past: @past } }
     end
   end
@@ -18,8 +19,9 @@ class Admin::CampaignsController < ApplicationController
     end
   end
 
+  # ⬇️ Previously returned JSON. Now render the HTML page for the wizard step 1.
   def new
-    render json: { ok: true, hint: 'POST to /admin/campaigns with fields' }
+    # Renders app/views/admin/campaigns/new.html.erb
   end
 
   def create
@@ -74,6 +76,8 @@ class Admin::CampaignsController < ApplicationController
     y, m, rest = local_s.split('-')
     d, hm = rest.split('T')
     h, min = hm.split(':')
-    Time.use_zone('London') { Time.zone.local(y, m, d, h, min).utc }
+
+    # ✅ Rails tz name must be "Europe/London"
+    Time.use_zone('Europe/London') { Time.zone.local(y, m, d, h, min).utc }
   end
 end

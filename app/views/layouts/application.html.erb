@@ -3,16 +3,13 @@
 <head>
   <title>Stint Dashboard</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-
   <%= csrf_meta_tags %>
   <%= csp_meta_tag %>
 
-  <!-- Tailwind build -->
   <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
 </head>
 
-<%# If signed in, render the app shell with sidebar; otherwise render a clean auth page %>
-<body class="min-h-screen bg-[#0a0a0a] text-brand-white font-sans">
+<body data-controller="campaign-wizard" class="min-h-screen bg-[#0a0a0a] text-brand-white font-sans">
 <% if user_signed_in? %>
   <div class="min-h-screen flex">
     <aside class="w-64 bg-brand-black/90 border-r border-white/10 hidden md:flex md:flex-col">
@@ -25,14 +22,9 @@
           <div class="text-sm text-white/70">
             <%= render "shared/flash" %>
           </div>
-          <div class="flex items-center gap-3">
-                <span class="text-sm text-white/80">
-                  <%= current_user.first_name %> <%= current_user.last_name %>
-                </span>
-            <span class="px-2 py-0.5 rounded-full text-xs bg-white/10 text-white/80 uppercase tracking-wide">
-                  <%= current_user.role %>
-                </span>
-          </div>
+
+          <!-- ✅ Single source of truth -->
+          <%= render "shared/header_actions" %>
         </div>
       </header>
 
@@ -43,7 +35,6 @@
   </div>
 <% else %>
   <div class="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
-    <!-- nice subtle gradient dots bg -->
     <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(164,158,242,.15),transparent_40%),radial-gradient(circle_at_80%_20%,rgba(22,233,144,.12),transparent_35%)]"></div>
     <%= render "shared/flash" %>
     <%= yield %>

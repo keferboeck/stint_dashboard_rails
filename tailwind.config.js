@@ -9,6 +9,15 @@ module.exports = {
   theme: {
     // Extend config
     extend: {
+      colors: {
+        brand: {
+          green: "#16E990", // rgb(22, 233, 144)
+          purple: "#A49EF2", // rgb(164, 158, 242)
+          black: "#121212", // rgb(18, 18, 18)
+          grey: "#C4C4C4", // #c4c4c4 (no gradient, just solid color)
+          white: "#FFF"
+        },
+      },
       keyframes: {
         'slide-in': {
           '0%': { transform: 'translateY(-10px)', opacity: '0' },
@@ -73,15 +82,6 @@ module.exports = {
       'lg': '16px',
       'xl': '24px',
       '2xl': '40px',
-    },
-    colors: {
-      brand: {
-        green: "#16E990", // rgb(22, 233, 144)
-        purple: "#A49EF2", // rgb(164, 158, 242)
-        black: "#121212", // rgb(18, 18, 18)
-        grey: "#C4C4C4", // #c4c4c4 (no gradient, just solid color)
-        white: "#FFF"
-      },
     },
     spacing: {
       px: '1px',
@@ -598,10 +598,6 @@ module.exports = {
     padding: (theme) => theme('spacing'),
     placeholderColor: (theme) => theme('colors'),
     placeholderOpacity: (theme) => theme('opacity'),
-    ringColor: (theme) => ({
-      DEFAULT: theme('colors.blue.500', '#3b82f6'),
-      // ...theme('colors'),
-    }),
     ringOffsetColor: (theme) => theme('colors'),
     ringOffsetWidth: {
       // 0: '0px',

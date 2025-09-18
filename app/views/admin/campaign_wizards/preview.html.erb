@@ -1,0 +1,75 @@
+<!-- app/views/admin/campaign_wizards/preview.html.erb -->
+<div class="max-w-5xl mx-auto">
+  <h1 class="text-2xl font-semibold mb-2">Preview contacts</h1>
+
+  <div class="mb-4 flex items-center gap-3">
+    <span class="inline-flex items-center px-2 py-1 rounded bg-emerald-500/15 text-emerald-200 text-sm">
+      Imported <strong class="mx-1"><%= @recipients.size %></strong> valid email<%= 's' unless @recipients.size == 1 %>
+    </span>
+
+    <% if @invalids.any? %>
+      <details class="ml-2">
+        <summary class="cursor-pointer inline-flex items-center px-2 py-1 rounded bg-red-500/15 text-red-200 text-sm">
+          <strong class="mx-1"><%= @invalids.size %></strong> invalid not imported — click to view
+        </summary>
+        <div class="mt-2 max-h-48 overflow-auto rounded border border-white/10">
+          <table class="w-full text-sm">
+            <thead class="bg-white/5 text-white/70">
+            <tr>
+              <th class="text-left px-3 py-2">CSV row</th>
+              <th class="text-left px-3 py-2">Email</th>
+              <th class="text-left px-3 py-2">Reason</th>
+            </tr>
+            </thead>
+            <tbody>
+            <% @invalids.each do |inv| %>
+              <tr class="border-t border-white/10">
+                <td class="px-3 py-1.5"><%= inv[:row] %></td>
+                <td class="px-3 py-1.5 font-mono"><%= inv[:email] %></td>
+                <td class="px-3 py-1.5">Invalid or blank email</td>
+              </tr>
+            <% end %>
+            </tbody>
+          </table>
+        </div>
+      </details>
+    <% end %>
+  </div>
+
+  <!-- Existing preview of valid rows -->
+  <div class="rounded border border-white/10 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-white/5 text-white/70">
+      <tr>
+        <th class="text-left px-3 py-2">Email</th>
+        <% if (first = @recipients.first) %>
+          <% first.fields.keys.each do |k| %>
+            <th class="text-left px-3 py-2"><%= k %></th>
+          <% end %>
+        <% end %>
+      </tr>
+      </thead>
+      <tbody>
+      <% @recipients.each do |r| %>
+        <tr class="border-t border-white/10">
+          <td class="px-3 py-1.5 font-mono"><%= r.email %></td>
+          <% (first&.fields || {}).keys.each do |k| %>
+            <td class="px-3 py-1.5"><%= r.fields[k] %></td>
+          <% end %>
+        </tr>
+      <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="mt-6 flex justify-end gap-3">
+    <%= button_to "Cancel", cancel_admin_campaign_wizard_path(token: @temp_upload.token),
+                  method: :delete,
+                  class: "px-3 py-2 rounded bg-white/5 hover:bg-white/10" %>
+
+    <%= form_with url: configure_admin_campaign_wizard_path(token: @temp_upload.token),
+                  method: :post do %>
+      <%= submit_tag "Continue", class: "px-4 py-2 rounded bg-brand-green/20 hover:bg-brand-green/30" %>
+    <% end %>
+  </div>
+</div>
