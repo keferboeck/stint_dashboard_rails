@@ -166,10 +166,10 @@ GEM
       logger (~> 1.6)
     letter_opener (1.10.0)
       launchy (>= 2.2, < 4)
-    letter_opener_web (2.0.0)
-      actionmailer (>= 5.2)
-      letter_opener (~> 1.7)
-      railties (>= 5.2)
+    letter_opener_web (3.0.0)
+      actionmailer (>= 6.1)
+      letter_opener (~> 1.9)
+      railties (>= 6.1)
       rexml
     lint_roller (1.1.0)
     logger (1.7.0)
@@ -425,7 +425,7 @@ DEPENDENCIES
   jbuilder
   jsbundling-rails
   kamal
-  letter_opener_web (~> 2.0)
+  letter_opener_web (~> 3.0)
   mailchimp_transactional (~> 1.0)
   mjml-rails
   pg (~> 1.1)

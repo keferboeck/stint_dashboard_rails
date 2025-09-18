@@ -66,7 +66,7 @@ gem 'premailer-rails'                   # inlines CSS in HTML emails
 gem 'mjml-rails'                        # render .mjml.erb -> HTML (needs node `mjml` installed)
 
 group :development do
-  gem 'letter_opener_web', '~> 2.0'
+  gem 'letter_opener_web', '~> 3.0'
 end
 gem "tailwindcss-rails", "~> 4.3"
 
