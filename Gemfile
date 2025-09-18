@@ -55,7 +55,7 @@ end
 
 gem 'redis', '~> 5.2'
 gem 'sidekiq', '~> 7.3'
-gem 'mailchimp_transactional', '~> 1.0'
+gem 'mailchimp_transactional', '~> 2.0'
 
 gem 'dotenv-rails', groups: %i[development test]
 
