@@ -3,39 +3,33 @@ require "csv"
 
 class Admin::CampaignWizardsController < ApplicationController
   before_action :authenticate_user!
-  before_action :require_manager_or_admin!, only: %i[new upload_csv preview configure finalize cancel]
+  before_action :require_manager_or_admin!, only: %i[new show upload_csv preview configure finalize cancel]
   before_action :load_temp_upload,          only: %i[preview configure finalize cancel]
   before_action :set_invalids,              only: %i[preview configure finalize]
-  before_action :load_mandrill_templates, only: %i[configure]
+  before_action :load_mandrill_templates,   only: %i[configure]
 
-  def new
-
+  # GET /admin/campaign_wizard (singular resource#show)
+  def show
+    # just render upload form (view: app/views/admin/campaign_wizards/show.html.erb)
   end
 
-  def show
-    # nothing special; renders upload form
+  def new
+    redirect_to admin_campaign_wizard_path
   end
 
   # POST /admin/campaign_wizard/upload_csv
-  # - parses CSV
-  # - trims whitespace in headers & values
-  # - filters invalid emails (must have EMAIL column)
-  # - stores valid rows in TempRecipient linked to a TempUpload
-  # - shows preview page with a scrollable table + invalid list
   def upload_csv
     file = params[:file]
-    return redirect_back fallback_location: new_admin_campaign_wizard_path, alert: "Please choose a CSV file." unless file
+    return redirect_back fallback_location: admin_campaign_wizard_path, alert: "Please choose a CSV file." unless file
 
     rows = CSV.read(file.tempfile, headers: true).map(&:to_h)
 
-    # normalise headers and values (strip whitespace)
     norm = ->(h) { (h || "").to_s.strip }
-    headers = rows.first&.keys&.map { |k| norm.call(k) } || []
+    headers  = rows.first&.keys&.map { |k| norm.call(k) } || []
     email_key = headers.find { |h| h.casecmp("email").zero? }
-    return redirect_back fallback_location: new_admin_campaign_wizard_path, alert: "CSV must contain an EMAIL column." unless email_key
+    return redirect_back fallback_location: admin_campaign_wizard_path, alert: "CSV must contain an EMAIL column." unless email_key
 
-    # build upload & recipients
-    upload = TempUpload.create!(user: current_user, token: SecureRandom.hex(12), filename: file.original_filename)
+    upload   = TempUpload.create!(user: current_user, token: SecureRandom.hex(12), filename: file.original_filename)
     invalids = []
 
     rows.each_with_index do |row, i|
@@ -44,7 +38,7 @@ class Admin::CampaignWizardsController < ApplicationController
 
       addr = clean[email_key]
       if addr.blank? || !(addr =~ URI::MailTo::EMAIL_REGEXP)
-        invalids << { row: i + 2, email: addr.presence || "(blank)" } # +2 because headers are row 1
+        invalids << { row: i + 2, email: addr.presence || "(blank)" } # +2 because headers line is row 1
         next
       end
 
@@ -54,130 +48,125 @@ class Admin::CampaignWizardsController < ApplicationController
 
     upload.update!(row_count: upload.temp_recipients.count)
 
-    # Hand preview everything it needs
-    session[:campaign_wizard] = {
-      token: upload.token,
-      invalids: invalids
-    }
-
+    session[:campaign_wizard] = { token: upload.token, invalids: invalids }
     redirect_to preview_admin_campaign_wizard_path(token: upload.token)
   end
 
   # GET /admin/campaign_wizard/preview
-  # (You’ll usually land here from upload_csv; keep it simple.)
   def preview
-    @temp_upload = TempUpload.where(user_id: current_user.id).order(id: :desc).first
-    unless @temp_upload
-      redirect_to admin_campaign_wizard_path, alert: "Nothing to preview — upload a CSV first." and return
-    end
-    @rows = TempRecipient.where(temp_upload_id: @temp_upload.id).limit(500)
-    @headers = derive_headers_from_sample(@rows)
-    @invalid = [] # only shown immediately after upload; keep empty here
+    return unless ensure_temp_upload!
+    @recipients = @temp_upload.temp_recipients.order(:id)
+    @headers    = derive_headers_from_sample(@recipients)
   end
 
   # POST /admin/campaign_wizard/configure
-  # Renders the form for subject/template/schedule, tied to a temp_upload_id
+  # Renders the form (POST render) so we don’t need a GET route.
   def configure
-    token = params[:token] || params.dig(:campaign, :token) || @tu&.token
-    subject       = params.dig(:campaign, :subject)
-    preview_text  = params.dig(:campaign, :preview_text)
-    template_name = params.dig(:campaign, :template_name)
-    send_now      = params.dig(:campaign, :send_now) == "1"
-    scheduled_at  = params.dig(:campaign, :scheduled_at_local)
+    # token from query, nested, or the latest upload
+    token = params[:token].presence ||
+      params.dig(:campaign, :token).presence ||
+      @temp_upload&.token
 
-    # Initial GET-render (no params yet): just show form with any saved state
-    unless request.post?
-      @form = state_for(token).slice(:subject, :preview_text, :template_name, :scheduled_at_local, :send_now)
-      @form[:token] ||= token
-      return render :configure
-    end
-
-    # Validate
-    errors = []
-    errors << "Subject is required"                 if subject.blank?
-    errors << "Template is required"                if template_name.blank?
-    errors << "Choose send now or schedule time"    if !send_now && scheduled_at.blank?
-
-    # Persist form state in session so we don’t lose inputs on error
-    stash_state(token, {
-      subject: subject,
-      preview_text: preview_text,
-      template_name: template_name,
-      send_now: send_now,
-      scheduled_at_local: scheduled_at
-    })
-
-    if errors.any?
-      @form   = state_for(token)
-      @errors = errors
-      return render :configure, status: :unprocessable_entity
-    end
-
-    # Store in session and move to finalize
-    redirect_to finalize_admin_campaign_wizard_path(token: token)
+    # keep previously entered values (if any)
+    @form = state_for(token).slice(:subject, :preview_text, :template_slug, :scheduled_at_local, :send_now)
+    @form[:token] ||= token
   end
 
   # POST /admin/campaign_wizard/finalize
-  # Creates Campaign + Emails, deletes temp rows.
   def finalize
-    token = params[:token] || @tu&.token
-    st = state_for(token)
+    # token comes nested in the form
+    token = params.dig(:campaign, :token)
 
-    if st.blank?
-      flash[:alert] = "Session expired. Please re-upload your CSV."
-      return redirect_to new_admin_campaign_wizard_path
+    # load via before_action
+    # (@temp_upload is set by load_temp_upload and now finds nested tokens)
+    recipients = @temp_upload.temp_recipients.order(:id)
+    if recipients.empty?
+      flash[:alert] = "No valid recipients to send to."
+      return redirect_to admin_campaign_wizard_path(token: @temp_upload.token)
     end
 
-    # Build campaign
-    utc_instant =
-      if st[:send_now]
-        nil
-      elsif st[:scheduled_at_local].present?
-        parse_london_wall_to_utc(st[:scheduled_at_local])
+    subject      = params.dig(:campaign, :subject).to_s.strip
+    preview_text = params.dig(:campaign, :preview_text).to_s.strip
+    send_now     = params.dig(:campaign, :send_now) == "1"
+    local_time   = params.dig(:campaign, :scheduled_at_local).to_s.strip
+    template     = params[:template_slug].to_s.strip  # from select_tag :template_slug
+
+    errors = []
+    errors << "Subject is required"    if subject.blank?
+    errors << "Template is required"   if template.blank?
+    errors << "Choose a schedule time" if !send_now && local_time.blank?
+
+    if errors.any?
+      # keep filled values around
+      stash_state(token, {
+        subject: subject,
+        preview_text: preview_text,
+        template_slug: template,
+        send_now: send_now,
+        scheduled_at_local: local_time
+      })
+      flash[:alert] = errors.join(", ")
+      return redirect_to configure_admin_campaign_wizard_path(token: @temp_upload.token)
+    end
+
+    scheduled_at_utc =
+      if send_now
+        Time.current.utc
+      elsif local_time.present?
+        parse_london_wall_to_utc(local_time)
       end
 
-    c = Campaign.new(
-      name:          st[:filename].presence || "Untitled campaign",
-      template_name: st[:template_name],
-      subject:       st[:subject],
-      preview_text:  st[:preview_text],
-      scheduled_at:  st[:send_now] ? Time.current.utc : utc_instant,
-      status:        st[:send_now] ? "SCHEDULED" : "SCHEDULED"
+    # IMPORTANT: only use allowed statuses — no "QUEUED"
+    campaign = Campaign.new(
+      name:          "CSV import #{Time.current.to_i}",
+      template_name: template,
+      subject:       subject,
+      preview_text:  preview_text,
+      scheduled_at:  scheduled_at_utc,
+      status:        "SCHEDULED",
+      user:          current_user
     )
 
-    TempRecipient.where(temp_upload_id: @tu.id).find_each do |r|
-      c.emails.build(address: r.email, custom_fields: r.fields, status: "PENDING")
+    recipients.each do |r|
+      campaign.emails.build(
+        address: r.email,
+        custom_fields: r.fields,
+        status: "PENDING"
+      )
     end
 
-    if c.save
-      # cleanup temp rows
-      TempRecipient.where(temp_upload_id: @tu.id).delete_all
-      @tu.destroy
-      wizard_state.delete(token)
+    Campaign.transaction do
+      campaign.save!
 
-      flash[:notice] = st[:send_now] ? "Campaign queued to send now" : "Campaign scheduled"
-      redirect_to admin_campaign_path(c)
-    else
-      @errors = c.errors.full_messages
-      @form   = st
-      load_mandrill_templates
-      render :configure, status: :unprocessable_entity
+      if send_now
+        # fire immediately
+        CampaignTriggerJob.perform_later(campaign.id)
+      end
+
+      # cleanup temp data
+      @temp_upload.destroy!
+      session.delete(:campaign_wizard)
     end
+
+    flash[:notice] = send_now ? "Campaign is sending." : "Campaign scheduled."
+    redirect_to admin_campaign_path(campaign)
+  rescue => e
+    Rails.logger.error("[wizard] finalize failed: #{e.class}: #{e.message}")
+    flash[:alert] = "Could not finalize campaign: #{e.message}"
+    redirect_to configure_admin_campaign_wizard_path(token: token.presence || @temp_upload&.token)
   end
 
   # DELETE /admin/campaign_wizard/cancel
-  # Wipes the latest temp upload for this user.
   def cancel
-    tu = TempUpload.where(user_id: current_user.id).order(id: :desc).first
-    if tu
-      TempRecipient.where(temp_upload_id: tu.id).delete_all
-      tu.destroy
-      redirect_to admin_campaign_wizard_path, notice: "Upload cancelled and temporary data cleared."
-    else
-      redirect_to admin_campaign_wizard_path, alert: "Nothing to cancel."
+    if @temp_upload
+      TempRecipient.where(temp_upload_id: @temp_upload.id).delete_all
+      @temp_upload.destroy
     end
+    session.delete(:campaign_wizard)
+    redirect_to admin_campaign_wizard_path, notice: "Upload cancelled and temporary data cleared."
   end
 
+  # --- session helpers ---
   def wizard_state
     session[:campaign_wizard] ||= {}
   end
@@ -194,30 +183,50 @@ class Admin::CampaignWizardsController < ApplicationController
   private
 
   def load_mandrill_templates
-    @templates = MandrillTemplates.list_names
+    @templates = Rails.cache.fetch("mandrill:templates:list", expires_in: 10.minutes) do
+      MandrillClient.new.list_templates
+    end
+  rescue MandrillClient::Error => e
+    Rails.logger.warn("Mandrill templates failed: #{e.message}")
+    @templates = []
   end
 
   # "YYYY-MM-DDTHH:MM" (UK wall-time) -> UTC Time
   def parse_london_wall_to_utc(local_s)
-    y, m, rest = local_s.split('-')
-    d, hm = rest.split('T')
-    h, min = hm.split(':')
+    y, m, rest = local_s.to_s.split('-')
+    d, hm = rest.to_s.split('T')
+    h, min = (hm || "").split(':')
     Time.use_zone('London') { Time.zone.local(y, m, d, h, min).utc }
   end
 
   def derive_headers_from_sample(rows)
     sample = rows.first
-    return [] unless sample&.fields.is_a?(Hash)   # ⬅️ was custom_fields
-    ["EMAIL"] + sample.fields.keys                # ⬅️ was custom_fields
+    return [] unless sample&.fields.is_a?(Hash)
+    ["EMAIL"] + sample.fields.keys
   end
 
+  # app/controllers/admin/campaign_wizards_controller.rb
+
+  private
+
   def load_temp_upload
-    token = params[:token].presence || session.dig(:campaign_wizard, :token)
+    token = params[:token].presence ||
+      params.dig(:campaign, :token).presence ||
+      session.dig(:campaign_wizard, :token)
+
     @temp_upload = TempUpload.find_by(token: token, user_id: current_user.id)
     if @temp_upload.nil?
       redirect_to new_admin_campaign_wizard_path, alert: "Upload not found or expired." and return
     end
     @recipients = @temp_upload.temp_recipients.order(:id)
+  end
+
+  def ensure_temp_upload!
+    if @temp_upload.nil?
+      redirect_to admin_campaign_wizard_path, alert: "Upload not found or expired."
+      return false
+    end
+    true
   end
 
   def set_invalids

@@ -33,7 +33,8 @@ class Admin::CampaignsController < ApplicationController
       subject:       params[:subject],
       preview_text:  params[:preview_text],
       scheduled_at:  utc_instant,
-      status:        'SCHEDULED'
+      status:        'SCHEDULED',
+      user:          current_user
     )
 
     if params[:emails].is_a?(Array)

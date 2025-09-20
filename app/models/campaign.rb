@@ -1,5 +1,6 @@
 class Campaign < ApplicationRecord
   has_many :emails, dependent: :destroy
+  belongs_to :user, optional: true
 
   STATUSES = %w[PENDING SCHEDULED SENT FAILED].freeze
   validates :status, inclusion: { in: STATUSES }

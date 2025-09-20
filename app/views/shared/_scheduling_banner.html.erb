@@ -1,0 +1,10 @@
+<% s = AppSetting.instance %>
+<% if s.scheduling_on_hold || !s.cron_enabled %>
+  <div class="mb-4 p-3 rounded-lg border border-yellow-400/30 bg-yellow-500/10 text-yellow-100">
+    <div class="font-medium mb-1">Heads up</div>
+    <ul class="list-disc ml-5 text-sm">
+      <% if s.scheduling_on_hold %><li>Scheduling is currently <strong>on hold</strong>. No campaigns will be sent.</li><% end %>
+      <% unless s.cron_enabled %><li>The cron runner is <strong>disabled</strong>. Scheduled jobs won’t be processed.</li><% end %>
+    </ul>
+  </div>
+<% end %>

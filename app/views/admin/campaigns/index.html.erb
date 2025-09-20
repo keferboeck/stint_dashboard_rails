@@ -1,0 +1,113 @@
+<!-- app/views/admin/campaigns/index.html.erb -->
+<div class="max-w-6xl mx-auto space-y-8">
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-semibold">Campaigns</h1>
+    <%= link_to "Create campaign",
+                new_admin_campaign_wizard_path,
+                class: "px-3 py-2 rounded-lg bg-brand-green/20 hover:bg-brand-green/30" %>
+  </div>
+
+  <%= render "shared/scheduling_banner" %>
+
+  <!-- Scheduled (future) -->
+  <div class="space-y-3">
+    <h2 class="text-lg font-semibold">Scheduled</h2>
+
+    <% if @future.blank? %>
+      <div class="text-white/60 text-sm">No scheduled campaigns.</div>
+    <% else %>
+      <div class="overflow-auto rounded-xl border border-white/10">
+        <table class="min-w-full text-sm">
+          <thead class="bg-black/40 backdrop-blur">
+          <tr>
+            <th class="text-left px-4 py-2 border-b border-white/10">Name</th>
+            <th class="text-left px-4 py-2 border-b border-white/10">Template</th>
+            <th class="text-left px-4 py-2 border-b border-white/10">Recipients</th>
+            <th class="text-left px-4 py-2 border-b border-white/10">Delivery</th>
+            <th class="text-left px-4 py-2 border-b border-white/10">Scheduled (UK)</th>
+            <th class="text-left px-4 py-2 border-b border-white/10">By</th>
+            <th class="text-left px-4 py-2 border-b border-white/10"></th>
+          </tr>
+          </thead>
+          <tbody>
+          <% @future.each do |c| %>
+            <tr class="odd:bg-white/[0.03]">
+              <td class="px-4 py-2"><%= c.name %></td>
+              <td class="px-4 py-2"><%= c.template_name %></td>
+              <td class="px-4 py-2"><%= c.emails.count %></td>
+              <td class="px-4 py-2">
+                <%= delivery_badge(c) %>
+              </td>
+              <td class="px-4 py-2">
+                <% if c.scheduled_at %>
+                  <%= c.scheduled_at.in_time_zone("London").strftime("%Y-%m-%d %H:%M") %>
+                <% else %>
+                  —
+                <% end %>
+              </td>
+              <td class="px-4 py-2">
+                <%= campaign_scheduler(c) %>
+              </td>
+              <td class="px-4 py-2">
+                <%= link_to "Open", admin_campaign_path(c),
+                            class: "px-2 py-1 rounded bg-white/10 hover:bg-white/15" %>
+              </td>
+            </tr>
+          <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Past -->
+  <div class="space-y-3">
+    <h2 class="text-lg font-semibold">Past</h2>
+
+    <% if @past.blank? %>
+      <div class="text-white/60 text-sm">No past campaigns.</div>
+    <% else %>
+      <div class="overflow-auto rounded-xl border border-white/10">
+        <table class="min-w-full text-sm">
+          <thead class="bg-black/40 backdrop-blur">
+          <tr>
+            <th class="text-left px-4 py-2 border-b border-white/10">Name</th>
+            <th class="text-left px-4 py-2 border-b border-white/10">Template</th>
+            <th class="text-left px-4 py-2 border-b border-white/10">Recipients</th>
+            <th class="text-left px-4 py-2 border-b border-white/10">Delivery</th>
+            <th class="text-left px-4 py-2 border-b border-white/10">Ran at (UK)</th>
+            <th class="text-left px-4 py-2 border-b border-white/10">By</th>
+            <th class="text-left px-4 py-2 border-b border-white/10">Status</th>
+            <th class="text-left px-4 py-2 border-b border-white/10"></th>
+          </tr>
+          </thead>
+          <tbody>
+          <% @past.each do |c| %>
+            <tr class="odd:bg-white/[0.03]">
+              <td class="px-4 py-2"><%= c.name %></td>
+              <td class="px-4 py-2"><%= c.template_name %></td>
+              <td class="px-4 py-2"><%= c.emails.count %></td>
+              <td class="px-4 py-2"><%= delivery_badge(c) %></td>
+              <td class="px-4 py-2">
+                <% if c.scheduled_at %>
+                  <%= c.scheduled_at.in_time_zone("London").strftime("%Y-%m-%d %H:%M") %>
+                <% else %>
+                  —
+                <% end %>
+              </td>
+              <td class="px-4 py-2"><%= campaign_scheduler(c) %></td>
+              <td class="px-4 py-2">
+                <span class="px-2 py-0.5 rounded bg-white/10"><%= c.status %></span>
+              </td>
+              <td class="px-4 py-2">
+                <%= link_to "Open", admin_campaign_path(c),
+                            class: "px-2 py-1 rounded bg-white/10 hover:bg-white/15" %>
+              </td>
+            </tr>
+          <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  </div>
+</div>

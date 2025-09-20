@@ -1,6 +1,6 @@
-<!-- app/views/admin/campaign_wizards/configure.html.erb -->
+<% token = @form&.dig(:token) || params[:token] || @temp_upload&.token %>
 
-<% token = @form&.dig(:token) || params[:token] %>
+<%= render "shared/scheduling_banner" %>
 
 <div class="max-w-3xl mx-auto bg-white/5 rounded-xl p-6 border border-white/10">
   <h2 class="text-xl font-semibold mb-4">Configure campaign</h2>
@@ -13,13 +13,15 @@
     </div>
   <% end %>
 
-  <%= form_with url: configure_admin_campaign_wizard_path, method: :post, class: "space-y-4" do |f| %>
+  <%# ---------- MAIN FINALIZE FORM (POST) ---------- %>
+  <%= form_tag finalize_admin_campaign_wizard_path, method: :post, data: { turbo: false }, class: "space-y-6" do %>
     <%= hidden_field_tag "campaign[token]", token %>
 
     <div>
       <label class="block mb-1 text-sm text-white/80">Subject</label>
       <%= text_field_tag "campaign[subject]",
                          @form&.dig(:subject),
+                         required: true,
                          class: "w-full bg-white/10 border border-white/10 rounded px-3 py-2 text-white placeholder-white/40" %>
     </div>
 
@@ -32,10 +34,11 @@
 
     <div>
       <label class="block mb-1 text-sm text-white/80">Template</label>
-      <%= select_tag "campaign[template_name]",
-                     options_for_select(@templates, @form&.dig(:template_name)),
-                     include_blank: "Select a template",
-                     class: "w-full bg-white/10 border border-white/10 rounded px-3 py-2 text-white" %>
+      <% options = @templates.map { |t| [t[:name], t[:slug]] } %>
+      <%= select_tag :template_slug,
+                     options_for_select(options, @template_slug),
+                     include_blank: @templates.blank? ? "No templates found" : "Select a template",
+                     class: "w-full bg-white/5 text-white/90 rounded px-3 py-2" %>
     </div>
 
     <div class="flex items-center gap-3">
@@ -55,9 +58,20 @@
     </div>
 
     <div class="pt-3 flex items-center gap-3">
-      <%= link_to "Cancel", cancel_admin_campaign_wizard_path(token: token), data: { turbo_method: :delete }, class: "px-3 py-2 rounded bg-white/10 hover:bg-white/15" %>
-      <%= link_to "Back", preview_admin_campaign_wizard_path(token: token), class: "px-3 py-2 rounded bg-white/10 hover:bg-white/15" %>
-      <%= link_to "Finalize", finalize_admin_campaign_wizard_path(token: token), class: "ml-auto px-4 py-2 rounded bg-brand-green/20 hover:bg-brand-green/30" %>
+      <%= link_to "Back",
+                  preview_admin_campaign_wizard_path(token: token),
+                  class: "px-3 py-2 rounded bg-white/10 hover:bg-white/15" %>
+
+      <%= submit_tag "Finalize",
+                     class: "px-3 py-2 rounded bg-brand-green/20 hover:bg-brand-green/30" %>
     </div>
   <% end %>
+
+  <%# ---------- SEPARATE CANCEL ACTION (DELETE) — NOT NESTED ---------- %>
+  <div class="mt-4">
+    <%= link_to "Cancel and discard",
+                cancel_admin_campaign_wizard_path,
+                data: { turbo_method: :delete, turbo_confirm: "Cancel and discard uploaded contacts?" },
+                class: "px-3 py-2 inline-block rounded bg-white/10 hover:bg-white/20" %>
+  </div>
 </div>

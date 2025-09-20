@@ -39,6 +39,7 @@ Rails.application.routes.draw do
     resource :campaign_wizard do
       post :upload_csv
       get  :preview
+      get  :configure
       post :configure
       post :finalize
       delete :cancel

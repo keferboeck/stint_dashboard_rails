@@ -1,0 +1,125 @@
+<!-- app/views/admin/campaigns/show.html.erb -->
+<%= render "shared/scheduling_banner" %>
+
+<div class="max-w-6xl mx-auto space-y-6">
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-semibold">Campaign: <%= @campaign.name %></h1>
+    <div class="text-sm text-white/60">
+      ID <%= @campaign.id %>
+    </div>
+  </div>
+
+  <div class="grid md:grid-cols-3 gap-4">
+    <div class="bg-white/5 border border-white/10 rounded-xl p-4 space-y-2">
+      <div class="text-white/60 text-sm">Status</div>
+      <div class="text-lg">
+        <span class="px-2 py-0.5 rounded bg-white/10">
+          <%= @campaign.status %>
+        </span>
+        <% if @campaign.failure_reason.present? %>
+          <div class="mt-2 text-sm text-red-300">
+            <strong>Error:</strong> <%= @campaign.failure_reason %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="bg-white/5 border border-white/10 rounded-xl p-4 space-y-2">
+      <div class="text-white/60 text-sm">Template</div>
+      <div class="text-lg"><%= @campaign.template_name %></div>
+    </div>
+
+    <div class="bg-white/5 border border-white/10 rounded-xl p-4 space-y-2">
+      <div class="text-white/60 text-sm">Scheduled (UK)</div>
+      <div class="text-lg">
+        <% if @campaign.scheduled_at %>
+          <%= @campaign.scheduled_at.in_time_zone("London").strftime("%Y-%m-%d %H:%M") %>
+        <% else %>
+          <span class="text-white/60">—</span>
+        <% end %>
+      </div>
+
+      <div class="bg-white/5 border border-white/10 rounded-xl p-4 space-y-2">
+        <div class="text-white/60 text-sm">Scheduled by</div>
+        <div class="text-lg"><%= campaign_scheduler(@campaign) %></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white/5 border border-white/10 rounded-xl p-4">
+    <div class="grid md:grid-cols-4 gap-4 text-center">
+      <div>
+        <div class="text-white/60 text-sm">Total</div>
+        <div class="text-2xl font-semibold"><%= @campaign.emails.count %></div>
+      </div>
+      <div>
+        <div class="text-white/60 text-sm">Pending</div>
+        <div class="text-xl"><%= @campaign.emails.where(status: "PENDING").count %></div>
+      </div>
+      <div>
+        <div class="text-white/60 text-sm">Sent</div>
+        <div class="text-xl"><%= @campaign.emails.where(status: "SENT").count %></div>
+      </div>
+      <div>
+        <div class="text-white/60 text-sm">Failed</div>
+        <div class="text-xl text-red-300"><%= @campaign.emails.where(status: "FAILED").count %></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <!-- Send now (uses routes: post :send_now on member) -->
+    <%= button_to "Send now",
+                  send_now_admin_campaign_path(@campaign),
+                  method: :post,
+                  form: { data: { turbo_confirm: "Send this campaign now to all pending recipients?" } },
+                  class: "px-3 py-2 rounded bg-brand-green/20 hover:bg-brand-green/30" %>
+
+    <!-- Reschedule (post :reschedule on member), quick inline form -->
+    <%= form_with url: reschedule_admin_campaign_path(@campaign), method: :post, class: "flex items-center gap-2", local: true do %>
+      <input type="datetime-local"
+             name="scheduled_at_local"
+             class="bg-white/10 border border-white/10 rounded px-3 py-2 text-white"
+             value="<%= @campaign.scheduled_at&.in_time_zone('London')&.strftime('%Y-%m-%dT%H:%M') %>">
+      <%= submit_tag "Reschedule", class: "px-3 py-2 rounded bg-white/10 hover:bg-white/15" %>
+    <% end %>
+
+    <!-- Delete -->
+    <%= button_to "Delete campaign",
+                  admin_campaign_path(@campaign),
+                  method: :delete,
+                  form: { data: { turbo_confirm: "Delete this campaign and all its emails?" } },
+                  class: "px-3 py-2 rounded bg-white/10 hover:bg-white/15 text-red-200" %>
+  </div>
+
+  <div class="bg-white/5 border border-white/10 rounded-xl">
+    <div class="p-4 border-b border-white/10 font-medium">Recipients</div>
+    <div class="max-h-[420px] overflow-auto">
+      <table class="min-w-full text-sm">
+        <thead class="sticky top-0 bg-black/40 backdrop-blur">
+        <tr>
+          <th class="text-left px-4 py-2 border-b border-white/10">Email</th>
+          <th class="text-left px-4 py-2 border-b border-white/10">Status</th>
+          <th class="text-left px-4 py-2 border-b border-white/10">Fields</th>
+        </tr>
+        </thead>
+        <tbody>
+        <% @campaign.emails.order(:id).limit(1000).each do |e| %>
+          <tr class="odd:bg-white/[0.03]">
+            <td class="px-4 py-2"><%= e.address %></td>
+            <td class="px-4 py-2"><span class="px-2 py-0.5 rounded bg-white/10"><%= e.status %></span></td>
+            <td class="px-4 py-2 text-white/80">
+              <%= e.custom_fields.presence || {} %>
+            </td>
+          </tr>
+        <% end %>
+        </tbody>
+      </table>
+      <% if @campaign.emails.count > 1000 %>
+        <div class="p-3 text-center text-white/60 text-sm border-t border-white/10">
+          Showing first 1000…
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
