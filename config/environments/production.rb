@@ -95,4 +95,16 @@ Rails.application.configure do
     authentication:       :login,
     enable_starttls_auto: true
   }
+
+  # Ensure Rails accepts requests for both domains
+  config.hosts << "stint.keferboeck.com"
+
+  # Canonical host for URL generation in the dashboard app
+  Rails.application.routes.default_url_options[:host] = "stint.keferboeck.com"
+
+  # Mailer URLs
+  config.action_mailer.default_url_options = {
+    host: "stint.keferboeck.com",
+    protocol: "https"
+  }
 end
