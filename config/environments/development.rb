@@ -58,6 +58,8 @@ Rails.application.configure do
   # Annotate rendered view with file names.
   config.action_view.annotate_rendered_view_with_filenames = true
 
+  config.middleware.delete ActionDispatch::HostAuthorization
+
   # Uncomment if you wish to allow Action Cable access from any origin.
   # config.action_cable.disable_request_forgery_protection = true
 
@@ -70,4 +72,8 @@ Rails.application.configure do
   config.action_mailer.perform_deliveries = true
   config.action_mailer.default_url_options = { host: 'localhost', port: 3000 }
   config.action_mailer.delivery_method = :letter_opener_web
+
+  config.hosts << "localhost"
+  config.hosts << "127.0.0.1"
+  config.hosts << "::1"
 end

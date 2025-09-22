@@ -91,20 +91,10 @@ Rails.application.configure do
     address:              "smtp.mandrillapp.com",
     port:                 587,
     user_name:            "mandrill",                 # Mandrill accepts any string or your account email
-    password:             ENV.fetch("MANDRILL_API_KEY"),
+    password:             ENV["MANDRILL_API_KEY"],
     authentication:       :login,
     enable_starttls_auto: true
   }
 
-  # Ensure Rails accepts requests for both domains
-  config.hosts << "stint.keferboeck.com"
-
-  # Canonical host for URL generation in the dashboard app
-  Rails.application.routes.default_url_options[:host] = "stint.keferboeck.com"
-
-  # Mailer URLs
-  config.action_mailer.default_url_options = {
-    host: "stint.keferboeck.com",
-    protocol: "https"
-  }
+  config.hosts << "localhost:3000"
 end
