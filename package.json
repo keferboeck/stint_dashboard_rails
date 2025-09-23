@@ -9,7 +9,8 @@
   },
   "scripts": {
     "tailwind:build": "npx tailwindcss -i ./app/assets/stylesheets/application.tailwind.css -o ./app/assets/builds/application.css --minify",
-    "tailwind:watch": "npx tailwindcss -i ./app/assets/stylesheets/application.tailwind.css -o ./app/assets/builds/application.css --watch"
+    "tailwind:watch": "npx tailwindcss -i ./app/assets/stylesheets/application.tailwind.css -o ./app/assets/builds/application.css --watch",
+    "build": "esbuild app/javascript/*.* --bundle --sourcemap --minify --outdir=app/assets/builds"
   },
   "keywords": [],
   "author": "",
