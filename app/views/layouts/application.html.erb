@@ -9,11 +9,6 @@
 
   <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
 
-  <%# Only include if Propshaft can see it %>
-    <% if Rails.application.assets.find_asset("application.js") %>
-      <%= javascript_include_tag "application", "data-turbo-track": "reload", defer: true %>
-    <% end %>
-    <%# DEPLOY_MARK v21 %>
 </head>
 
 <body data-controller="campaign-wizard"
