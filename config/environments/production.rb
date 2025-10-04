@@ -107,16 +107,15 @@ Rails.application.configure do
 
   # TEMPORARY: disable host authorization (remove after verifying)
 
-  # Easiest: allow all (TEMP while stabilizing)
-  config.hosts.clear
-
   # If you prefer to restrict instead of allow-all, comment the line above and use either of these:
   # config.hosts << "stint-dashboard-rails-2p7u8.ondigitalocean.app"
   # config.hosts << /\A.*\.ondigitalocean\.app\z/
 
-  # As an ultra-hard override, also remove the middleware (TEMP if needed)
-  config.middleware.delete ActionDispatch::HostAuthorization rescue nil
+  # TEMP while stabilizing:
+  config.hosts.clear
+  config.middleware.delete(ActionDispatch::HostAuthorization) rescue nil
 
-  # Log what Rails will allow so we can confirm in DO logs
-  Rails.logger.warn("ALLOWED HOSTS at boot: #{config.hosts.inspect}")
+  config.after_initialize do
+    puts "ALLOWED HOSTS at boot: #{Rails.application.config.hosts.inspect}"
+  end
 end
