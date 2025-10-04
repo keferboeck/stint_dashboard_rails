@@ -23,7 +23,6 @@
     "tailwindcss": "^3.4.17"
   },
   "dependencies": {
-    "@hotwired/turbo": "^8.0.13",
-    "mjml": "^4.16.1"
+    "@hotwired/turbo": "^8.0.13"
   }
 }

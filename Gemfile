@@ -63,7 +63,6 @@ gem 'devise', '~> 4.9'
 
 # Email delivery
 gem 'premailer-rails'                   # inlines CSS in HTML emails
-gem 'mjml-rails'                        # render .mjml.erb -> HTML (needs node `mjml` installed)
 
 group :development do
   gem 'letter_opener_web', '~> 2.0'
