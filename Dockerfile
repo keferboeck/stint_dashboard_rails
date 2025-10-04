@@ -59,7 +59,6 @@ COPY . .
 # -----------------------------
 # Expose port & start server
 # -----------------------------
-ENV PORT=8080
-EXPOSE 8080
-
-CMD ["bin/rails", "server", "-b", "0.0.0.0", "-p", "8080"]
+ENV PORT=80
+EXPOSE 80
+CMD ["bin/rails", "server", "-b", "0.0.0.0", "-p", "80"]
