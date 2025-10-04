@@ -1,9 +1,9 @@
+# lib/tasks/disable_do_build_assets.rake
 # DO App Platform builds run:
 #   SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
-# We detect that and turn assets + JS + Tailwind steps into no-ops,
-# because we've already committed prebuilt assets.
+# Detect that and skip assets/js/tailwind because assets are prebuilt and committed.
 if ENV["SECRET_KEY_BASE_DUMMY"] == "1"
-  # Nuke assets:precompile so it doesn't pull in sub-tasks
+  # Skip the whole precompile
   if Rake::Task.task_defined?("assets:precompile")
     Rake::Task["assets:precompile"].clear
   end
@@ -15,19 +15,24 @@ if ENV["SECRET_KEY_BASE_DUMMY"] == "1"
     end
   end
 
-  # Belt-and-braces: neutralize jsbundling & tailwind tasks if something still calls them
+  # Belt-and-braces: neutralize jsbundling & tailwind tasks
   %w[javascript:install javascript:build tailwindcss:build].each do |t|
-    if Rake::Task.task_defined?(t)
-      Rake::Task[t].clear
-    end
+    Rake::Task[t].clear if Rake::Task.task_defined?(t)
   end
 
   namespace :javascript do
-    task :install { puts "Skipping javascript:install (DO build)" }
-    task :build   { puts "Skipping javascript:build (DO build)" }
+    task :install do
+      puts "Skipping javascript:install (DO build)"
+    end
+
+    task :build do
+      puts "Skipping javascript:build (DO build)"
+    end
   end
 
   namespace :tailwindcss do
-    task :build { puts "Skipping tailwindcss:build (DO build)" }
+    task :build do
+      puts "Skipping tailwindcss:build (DO build)"
+    end
   end
 end
