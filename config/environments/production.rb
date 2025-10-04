@@ -99,10 +99,13 @@ Rails.application.configure do
     enable_starttls_auto: true
   }
 
-  config.hosts << "localhost:3000"
+  # Allow all ondigitalocean.app preview hosts (safe enough for this env)
+  config.hosts << /\A.*\.ondigitalocean\.app\z/
 
-  # Allow DO preview host(s)
-  config.hosts << "stint-dashboard-rails-2p7u8.ondigitalocean.app"
-  # (optional) allow any *.ondigitalocean.app subdomain:
-  config.hosts << /.*\.ondigitalocean\.app/
+  # (optional) if you also plan to use your domain:
+  # config.hosts << "stint.keferboeck.com"
+
+  # (fix an earlier mistake: hosts should not include ports)
+  config.hosts.delete("localhost:3000")
+  config.hosts << "localhost"
 end
