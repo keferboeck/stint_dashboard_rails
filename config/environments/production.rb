@@ -46,13 +46,13 @@ Rails.application.configure do
   # Don't log any deprecations.
   config.active_support.report_deprecations = false
 
-  # Serve static assets (so /assets/* works)
-  config.public_file_server.enabled = ENV["RAILS_SERVE_STATIC_FILES"].present?
-
   # Don’t boot the whole app for assets:precompile
   config.assets.initialize_on_precompile = false
 
-  # Sprockets: ensure we can find app/assets/builds
+  # Serve static assets
+  config.public_file_server.enabled = ENV["RAILS_SERVE_STATIC_FILES"].present? || true
+
+  # Make sure Propshaft can see Tailwind’s build output
   config.assets.paths << Rails.root.join("app/assets/builds")
 
   # Replace the default in-process memory cache store with a durable alternative.

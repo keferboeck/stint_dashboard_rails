@@ -1,12 +1,11 @@
 // app/assets/manifest.js
 
-// Include built JS & CSS from esbuild/tailwind
-//= link_tree ./builds
+//= link tailwind.css
 
-// Explicitly link main entry points
-//= link application.js
-//= link application.css
-
-// Optional: keep your static assets
 //= link_tree ./images
 //= link_tree ./fonts
+
+// allow Propshaft to find files built under builds/
+// (tailwindcss-rails writes tailwind.css here)
+// If you link tailwind.css directly as above, this line helps during precompile:
+//= link_tree ./builds

@@ -70,5 +70,3 @@ end
 gem "tailwindcss-rails", "~> 4.3"
 
 # Gemfile
-gem "jsbundling-rails"   # JS build pipeline (esbuild)
-gem "stimulus-rails"     # Stimulus installer/rails glue
