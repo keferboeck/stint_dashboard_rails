@@ -100,12 +100,11 @@ Rails.application.configure do
   }
 
   # Allow all ondigitalocean.app preview hosts (safe enough for this env)
-  config.hosts << /\A.*\.ondigitalocean\.app\z/
+  # config.hosts << /\A.*\.ondigitalocean\.app\z/
 
   # (optional) if you also plan to use your domain:
   # config.hosts << "stint.keferboeck.com"
 
-  # (fix an earlier mistake: hosts should not include ports)
-  config.hosts.delete("localhost:3000")
-  config.hosts << "localhost"
+  # TEMPORARY: disable host authorization (remove after verifying)
+  config.hosts.clear
 end
