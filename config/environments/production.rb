@@ -100,4 +100,9 @@ Rails.application.configure do
   }
 
   config.hosts << "localhost:3000"
+
+  # Allow DO preview host(s)
+  config.hosts << "stint-dashboard-rails-2p7u8.ondigitalocean.app"
+  # (optional) allow any *.ondigitalocean.app subdomain:
+  config.hosts << /.*\.ondigitalocean\.app/
 end
