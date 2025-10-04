@@ -1,13 +1,12 @@
 // app/assets/manifest.js
 
-// Entry points
-//= link application.css
-//= link application.js
-
-// If your build puts files in app/assets/builds, expose that directory:
-// (Propshaft looks relative to app/assets)
+// Include built JS & CSS from esbuild/tailwind
 //= link_tree ./builds
 
-// Images, fonts, etc. (adjust paths to where your files live)
+// Explicitly link main entry points
+//= link application.js
+//= link application.css
+
+// Optional: keep your static assets
 //= link_tree ./images
 //= link_tree ./fonts

@@ -31,6 +31,9 @@ module StintDashboard
     config.time_zone = 'London'
     config.active_record.default_timezone = :utc
 
+    # Make esbuild/tailwind outputs visible to Propshaft
+    config.assets.paths << Rails.root.join("app/assets/builds")
+
     # Configuration for the application, engines, and railties goes here.
     #
     # These settings can be overridden in specific environments using the files
