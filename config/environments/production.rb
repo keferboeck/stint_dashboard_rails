@@ -46,6 +46,8 @@ Rails.application.configure do
   # Don't log any deprecations.
   config.active_support.report_deprecations = false
 
+  config.public_file_server.enabled = true
+
   # Replace the default in-process memory cache store with a durable alternative.
   # config.cache_store = :mem_cache_store
 
@@ -77,6 +79,12 @@ Rails.application.configure do
 
   # Only use :id for inspections in production.
   config.active_record.attributes_for_inspect = [ :id ]
+
+  # Serve files from /public (required when we commit precompiled assets)
+  config.public_file_server.enabled = ENV["RAILS_SERVE_STATIC_FILES"].present?
+
+  # We’re committing precompiled assets, so keep runtime compilation off
+  config.assets.compile = false
 
   # Enable DNS rebinding protection and other `Host` header attacks.
   # config.hosts = [
