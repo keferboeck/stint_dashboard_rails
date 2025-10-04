@@ -1,20 +1,10 @@
 {
   "name": "stint_dashboard",
   "version": "1.0.0",
-  "description": "## Development environment:",
-  "main": "index.js",
-  "directories": {
-    "lib": "lib",
-    "test": "test"
-  },
   "scripts": {
     "tailwind:build": "npx tailwindcss -i ./app/assets/stylesheets/application.tailwind.css -o ./app/assets/builds/application.css --minify",
-    "tailwind:watch": "npx tailwindcss -i ./app/assets/stylesheets/application.tailwind.css -o ./app/assets/builds/application.css --watch",
     "build": "esbuild app/javascript/application.js --bundle --sourcemap --minify --outdir=app/assets/builds"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "devDependencies": {
     "@hotwired/stimulus": "^3.2.2",
     "autoprefixer": "^10.4.21",

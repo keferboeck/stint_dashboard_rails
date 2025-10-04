@@ -1,0 +1,38 @@
+!!! 5
+%html
+  %head
+    %title Stint Dashboard
+    %meta{ name: "viewport", content: "width=device-width,initial-scale=1" }
+
+    = csrf_meta_tags
+    = csp_meta_tag
+    = stylesheet_link_tag "application", "data-turbo-track": "reload"
+    = javascript_include_tag "application", "data-turbo-track": "reload", defer: true
+
+    -# DEPLOY_MARK v21
+
+  %body{ data: { controller: "campaign-wizard" },
+         class: "min-h-screen bg-[#0a0a0a] text-brand-white font-sans" }
+
+    - if user_signed_in?
+      %div{ class: "min-h-screen flex" }
+        %aside{ class: "w-64 bg-brand-black/90 border-r border-white/10 hidden md:flex md:flex-col" }
+          = render "shared/sidebar"
+
+        %div{ class: "flex-1 flex flex-col min-w-0" }
+          %header{ class: "sticky top-0 z-10 backdrop-blur bg-black/40 border-b border-white/10" }
+            %div{ class: "px-4 md:px-6 h-14 flex items-center justify-between" }
+              %div{ class: "text-sm text-white/70" }
+                = render "shared/flash"
+
+              = render "shared/header_actions"
+
+          %main{ class: "p-4 md:p-8" }
+            = yield
+    - else
+      %div{ class: "min-h-screen flex items-center justify-center px-4 relative overflow-hidden" }
+        %div{ class: "pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(164,158,242,.15),transparent_40%),radial-gradient(circle_at_80%_20%,rgba(22,233,144,.12),transparent_35%)]" }
+        = render "shared/flash"
+        = yield
+
+    = javascript_include_tag "application", "data-turbo-track": "reload", defer: true
