@@ -26,3 +26,12 @@ npm run build:watch
 bin/rails tailwindcss:watch
 bin/rails s
 ```
+
+## Before build and relase to DO
+
+```
+npm ci
+npm run tailwind:build
+npm run build
+RAILS_ENV=production bundle exec rake assets:precompile
+```
