@@ -115,16 +115,12 @@ Rails.application.configure do
   }
 
   # Allow all ondigitalocean.app preview hosts (safe enough for this env)
-  # config.hosts << /\A.*\.ondigitalocean\.app\z/
+  config.hosts << /\A.*\.ondigitalocean\.app\z/
 
   # (optional) if you also plan to use your domain:
-  # config.hosts << "stint.keferboeck.com"
-
-  # TEMPORARY: disable host authorization (remove after verifying)
-
-  # If you prefer to restrict instead of allow-all, comment the line above and use either of these:
-  # config.hosts << "stint-dashboard-rails-2p7u8.ondigitalocean.app"
-  # config.hosts << /\A.*\.ondigitalocean\.app\z/
+  config.hosts << "dashboard.stint.co"
+  config.hosts << "staging-rails-dashboard-u9jt9.ondigitalocean.app"
+  config.hosts << "production-rails-dashboard-cb6sb.ondigitalocean.app"
 
   # TEMP while stabilizing:
   config.hosts.clear
