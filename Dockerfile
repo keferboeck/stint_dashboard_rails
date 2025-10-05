@@ -27,6 +27,11 @@ COPY . .
 RUN npm run tailwind:build && \
     SECRET_KEY_BASE=dummy bundle exec rails assets:precompile
 
+RUN npm run tailwind:build && \
+    DATABASE_URL="postgresql://postgres:postgres@localhost:5432/dummy" \
+    SECRET_KEY_BASE=dummy \
+    bundle exec rails assets:precompile
+
 EXPOSE 8080
 RUN mkdir -p tmp/pids tmp/cache tmp/sockets log
 
