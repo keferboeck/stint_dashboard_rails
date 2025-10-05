@@ -27,11 +27,9 @@ bin/rails tailwindcss:watch
 bin/rails s
 ```
 
-## Before build and relase to DO
+## DB Migration & Seed
 
 ```
-npm ci
-npm run tailwind:build
-npm run build
-RAILS_ENV=production bundle exec rake assets:precompile
+RAILS_ENV=production bundle exec rails db:migrate
+RAILS_ENV=production bundle exec rails db:seed
 ```
