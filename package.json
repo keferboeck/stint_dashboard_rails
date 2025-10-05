@@ -1,18 +1,11 @@
 {
   "name": "stint_dashboard",
   "version": "1.0.0",
+  "private": true,
   "scripts": {
-    "tailwind:build": "npx tailwindcss -i ./app/assets/stylesheets/application.tailwind.css -o ./app/assets/builds/application.css --minify",
-    "build": "esbuild app/javascript/application.js --bundle --sourcemap --minify --outdir=app/assets/builds"
+    "tailwind:build": "npx tailwindcss -i ./app/assets/stylesheets/application.tailwind.css -o ./app/assets/builds/tailwind.css --minify"
   },
   "devDependencies": {
-    "@hotwired/stimulus": "^3.2.2",
-    "autoprefixer": "^10.4.21",
-    "esbuild": "^0.25.9",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^3.4.17"
-  },
-  "dependencies": {
-    "@hotwired/turbo": "^8.0.13"
+    "tailwindcss": "^3.4.14"
   }
 }
