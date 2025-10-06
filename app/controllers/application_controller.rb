@@ -43,6 +43,10 @@ class ApplicationController < ActionController::Base
     deny_access!
   end
 
+  def after_resetting_password_path_for(_resource)
+    dashboard_path
+  end
+
   private
 
   def deny_access!

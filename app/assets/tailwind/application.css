@@ -1,1 +1,136 @@
+@config "../../../tailwind.config.js";
 @import "tailwindcss";
+/* --- Mabry Pro (Light 300) --- */
+@font-face{
+    font-family:"Mabry Pro";
+    src:url("/assets/MabryPro-Light/MabryPro-Light.woff2") format("woff2"),
+    url("/assets/MabryPro-Light/MabryPro-Light.woff") format("woff");
+    font-weight:300;
+    font-style:normal;
+    font-display:swap;
+}
+@font-face{
+    font-family:"Mabry Pro";
+    src:url("/assets/MabryPro-Light/MabryPro-LightItalic.woff2") format("woff2"),
+    url("/assets/MabryPro-Light/MabryPro-LightItalic.woff") format("woff");
+    font-weight:300;
+    font-style:italic;
+    font-display:swap;
+}
+
+/* --- Mabry Pro (Regular 400) --- */
+@font-face{
+    font-family:"Mabry Pro";
+    src:url("/assets/MabryPro-Regular/MabryPro-Regular.woff2") format("woff2"),
+    url("/assets/MabryPro-Regular/MabryPro-Regular.woff") format("woff");
+    font-weight:400;
+    font-style:normal;
+    font-display:swap;
+}
+@font-face{
+    font-family:"Mabry Pro";
+    src:url("/assets/MabryPro-Regular/MabryPro-Italic.woff2") format("woff2"),
+    url("/assets/MabryPro-Regular/MabryPro-Italic.woff") format("woff");
+    font-weight:400;
+    font-style:italic;
+    font-display:swap;
+}
+
+/* --- Mabry Pro (Medium 500) --- */
+@font-face{
+    font-family:"Mabry Pro";
+    src:url("/assets/MabryPro-Medium/MabryPro-Medium.woff2") format("woff2"),
+    url("/assets/MabryPro-Medium/MabryPro-Medium.woff") format("woff");
+    font-weight:500;
+    font-style:normal;
+    font-display:swap;
+}
+@font-face{
+    font-family:"Mabry Pro";
+    src:url("/assets/MabryPro-Medium/MabryPro-MediumItalic.woff2") format("woff2"),
+    url("/assets/MabryPro-Medium/MabryPro-MediumItalic.woff") format("woff");
+    font-weight:500;
+    font-style:italic;
+    font-display:swap;
+}
+
+/* --- Mabry Pro (Bold 700) --- */
+@font-face{
+    font-family:"Mabry Pro";
+    src:url("/assets/MabryPro-Bold/MabryPro-Bold.woff2") format("woff2"),
+    url("/assets/MabryPro-Bold/MabryPro-Bold.woff") format("woff");
+    font-weight:700;
+    font-style:normal;
+    font-display:swap;
+}
+@font-face{
+    font-family:"Mabry Pro";
+    src:url("/assets/MabryPro-Bold/MabryPro-BoldItalic.woff2") format("woff2"),
+    url("/assets/MabryPro-Bold/MabryPro-BoldItalic.woff") format("woff");
+    font-weight:700;
+    font-style:italic;
+    font-display:swap;
+}
+
+/* --- Mabry Pro (Black 900) --- */
+@font-face{
+    font-family:"Mabry Pro";
+    src:url("/assets/MabryPro-Black/MabryPro-Black.woff2") format("woff2"),
+    url("/assets/MabryPro-Black/MabryPro-Black.woff") format("woff");
+    font-weight:900;
+    font-style:normal;
+    font-display:swap;
+}
+@font-face{
+    font-family:"Mabry Pro";
+    src:url("/assets/MabryPro-Black/MabryPro-BlackItalic.woff2") format("woff2"),
+    url("/assets/MabryPro-Black/MabryPro-BlackItalic.woff") format("woff");
+    font-weight:900;
+    font-style:italic;
+    font-display:swap;
+}
+
+/* --- Rustico (display) --- */
+@font-face{
+    font-family:"Rustico";
+    src:url("/assets/Rustico/Rustico-Regular.woff") format("woff");
+    font-weight:400;
+    font-style:normal;
+    font-display:swap;
+}
+
+@layer components {
+    .input-dark {
+        /* only plain utilities here */
+        @apply w-full rounded-lg bg-white/10 border border-white/10 px-3 py-2 text-white placeholder-white/40
+        outline-none ring-0;
+    }
+
+    /* put the variant on the selector */
+    .input-dark:focus {
+        @apply ring-2 border-brand-green;          /* plain utilities */
+        --tw-ring-color: theme(colors.brand.green); /* set ring color */
+    }
+}
+
+@layer base {
+    input, select, textarea {
+        @apply bg-brand-black/80 text-white placeholder-white/50 border border-white/20 rounded-md px-3 py-2
+        outline-none ring-0; /* no focus: here */
+    }
+
+    /* all focus styles go in a selector */
+    input:focus,
+    select:focus,
+    textarea:focus {
+        @apply ring-2 border-brand-green;
+        --tw-ring-color: theme(colors.brand.green);
+    }
+
+    select { @apply pr-8; }
+
+    button {
+        @apply bg-brand-green text-black font-medium px-4 py-2 rounded-md transition;
+    }
+    button:hover { @apply bg-brand-green/90; }
+}

@@ -4,31 +4,52 @@
   </div>
 
   <div class="rounded-2xl bg-white/5 border border-white/10 p-6 shadow-[0_10px_40px_rgba(0,0,0,.35)]">
-    <h1 class="text-2xl font-semibold mb-1">Choose a new password</h1>
-    <p class="text-white/60 mb-6 text-sm">Enter and confirm your new password.</p>
+    <h1 class="text-2xl font-semibold mb-2">Choose a new password</h1>
+    <p class="text-white/60 mb-6 text-sm">
+      Enter and confirm your new password below.
+      <% if defined?(@minimum_password_length) && @minimum_password_length.present? %>
+        <span class="block mt-1 text-white/50">
+          Minimum <%= @minimum_password_length %> characters.
+        </span>
+      <% end %>
+    </p>
 
     <%= form_for(resource, as: resource_name, url: password_path(resource_name), html: { method: :put }) do |f| %>
       <%= f.hidden_field :reset_password_token %>
 
+      <% if resource.errors.any? %>
+        <div class="mb-4 rounded-xl bg-red-500/10 border border-red-500/30 p-3 text-sm text-red-100">
+          <ul class="list-disc list-inside space-y-1">
+            <% resource.errors.full_messages.each do |msg| %>
+              <li><%= msg %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
       <div class="space-y-4">
         <div>
-          <%= f.label :password, "New password", class: "block text-sm mb-1 text-white/80" %>
-          <%= f.password_field :password,
-                               autofocus: true,
-                               autocomplete: "new-password",
+          <%= f.label :password, "New password", class: "block text-sm font-medium text-white/80 mb-1" %>
+          <%= f.password_field :password, autocomplete: "new-password",
                                class: "w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-brand-purple" %>
         </div>
 
         <div>
-          <%= f.label :password_confirmation, "Confirm new password", class: "block text-sm mb-1 text-white/80" %>
-          <%= f.password_field :password_confirmation,
-                               autocomplete: "new-password",
+          <%= f.label :password_confirmation, "Confirm new password", class: "block text-sm font-medium text-white/80 mb-1" %>
+          <%= f.password_field :password_confirmation, autocomplete: "new-password",
                                class: "w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-brand-purple" %>
         </div>
 
-        <%= f.submit "Update password",
-                     class: "w-full mt-2 inline-flex items-center justify-center rounded-lg bg-brand-green text-black font-medium px-4 py-2.5 hover:opacity-90 transition" %>
+        <div>
+          <%= f.submit "Update password",
+                       class: "w-full mt-2 inline-flex items-center justify-center rounded-lg bg-brand-green text-black font-medium px-4 py-2.5 hover:opacity-90 transition" %>
+        </div>
       </div>
     <% end %>
+  </div>
+
+  <div class="mt-6 text-center">
+    <%= link_to "Back to sign in", new_session_path(resource_name),
+                class: "text-white/70 hover:text-white underline underline-offset-4" %>
   </div>
 </div>
