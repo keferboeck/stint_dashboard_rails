@@ -6,6 +6,12 @@ Rails.application.configure do
   # Show full error pages on staging (optional)
   # config.consider_all_requests_local = true
 
+  config.action_mailer.default_url_options = {
+    host: ENV.fetch("APP_HOST", "staging-rails-dashboard-u9jt9.ondigitalocean.app"),
+    protocol: "https"
+  }
+  Rails.application.routes.default_url_options = config.action_mailer.default_url_options
+
   # Add your staging host (keep whatever mechanism you already use for hosts)
   config.hosts << ENV.fetch("STAGING_HOST", "https://staging-rails-dashboard-u9jt9.ondigitalocean.app/")
 
