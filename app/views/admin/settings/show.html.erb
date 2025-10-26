@@ -15,41 +15,86 @@
   </div>
 
   <!-- Safety Controls -->
-  <div class="border border-white/10 rounded-lg p-5 space-y-6">
-    <h2 class="text-h4">Safety controls</h2>
-
-    <div class="space-y-3">
-      <div class="flex items-center justify-between">
-        <div>
-          <div class="font-medium">Put all schedules on hold</div>
-          <div class="text-sm text-white/60">Prevents any sending until you release again.</div>
-        </div>
-        <%= button_to "Hold all", hold_all_schedules_admin_settings_path,
-                      method: :post,
-                      data: { turbo_confirm: "Are you sure? This pauses all sending." },
-                      class: "px-3 py-2 bg-white/10 rounded hover:bg-white/20" %>
-      </div>
-
-      <div class="pt-3 border-t border-white/10">
-        <div class="font-medium text-red-300">Delete future scheduled campaigns</div>
-        <div class="text-sm text-white/60 mb-2">This will remove future campaigns and their pending emails.</div>
-        <%= form_with url: purge_future_schedules_admin_settings_path, method: :delete, class: "flex items-center gap-2" do |f| %>
-          <%= hidden_field_tag :confirm, "YES" %>
-          <%= button_tag "Purge future (type=YES preset)", data: { turbo_confirm: "Really delete future campaigns?" }, class: "px-3 py-2 bg-red-600/20 text-red-200 rounded hover:bg-red-600/30" %>
-        <% end %>
-      </div>
-
-      <div class="pt-3 border-t border-white/10 flex items-center justify-between">
-        <div>
-          <div class="font-medium">Cron runner</div>
-          <div class="text-sm text-white/60">Current: <span class="px-2 py-0.5 bg-white/10 rounded"><%= @settings.cron_enabled ? "ENABLED" : "DISABLED" %></span></div>
-        </div>
-        <%= button_to (@settings.cron_enabled ? "Disable cron" : "Enable cron"),
-                      toggle_cron_admin_settings_path,
-                      method: :post,
-                      data: { turbo_confirm: "Are you sure? This flips the cron flag." },
-                      class: "px-3 py-2 bg-white/10 rounded hover:bg-white/20" %>
-      </div>
-    </div>
-  </div>
+  <turbo-frame id="safety_frame">
+    <%= render "admin/settings/safety", settings: @settings %>
+  </turbo-frame>
 </div>
+
+<!-- Vanilla JS (no bundlers) -->
+<script nonce="<%= content_security_policy_nonce %>">
+    (function() {
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+
+        async function req(url, method, body) {
+            const res = await fetch(url, {
+                method,
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrf
+                },
+                body: body ? JSON.stringify(body) : null,
+                credentials: 'same-origin'
+            });
+            let data = {};
+            try { data = await res.json(); } catch (_) {}
+            if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+            return data;
+        }
+
+        // Hold all
+        const holdBtn = document.getElementById('hold-btn');
+        const holdStatus = document.getElementById('hold-status');
+        if (holdBtn && holdStatus) {
+            holdBtn.addEventListener('click', async () => {
+                if (!confirm("Are you sure? This pauses all sending.")) return;
+                holdBtn.disabled = true;
+                try {
+                    const data = await req(holdBtn.dataset.endpoint, 'POST');
+                    holdStatus.textContent = data.scheduling_on_hold ? "ON HOLD" : "ACTIVE";
+                    holdBtn.textContent    = data.scheduling_on_hold ? "Already on hold" : "Hold all";
+                    holdBtn.disabled       = !!data.scheduling_on_hold;
+                } catch (e) {
+                    alert(e.message || "Failed to put on hold");
+                    holdBtn.disabled = false;
+                }
+            });
+        }
+
+        // Purge future
+        const purgeBtn = document.getElementById('purge-btn');
+        if (purgeBtn) {
+            purgeBtn.addEventListener('click', async () => {
+                if (!confirm("Really delete future campaigns?")) return;
+                purgeBtn.disabled = true;
+                try {
+                    const data = await req(purgeBtn.dataset.endpoint, 'DELETE', { confirm: "YES" });
+                    alert(`Purged ${data.purged} future campaign(s).`);
+                } catch (e) {
+                    alert(e.message || "Purge failed");
+                } finally {
+                    purgeBtn.disabled = false;
+                }
+            });
+        }
+
+        // Toggle cron
+        const cronBtn = document.getElementById('cron-btn');
+        const cronStatus = document.getElementById('cron-status');
+        if (cronBtn && cronStatus) {
+            cronBtn.addEventListener('click', async () => {
+                cronBtn.disabled = true;
+                try {
+                    const data = await req(cronBtn.dataset.endpoint, 'POST');
+                    const enabled = !!data.cron_enabled;
+                    cronStatus.textContent = enabled ? "ENABLED" : "DISABLED";
+                    cronBtn.textContent    = enabled ? "Disable cron" : "Enable cron";
+                } catch (e) {
+                    alert(e.message || "Failed to toggle cron");
+                } finally {
+                    cronBtn.disabled = false;
+                }
+            });
+        }
+    })();
+</script>

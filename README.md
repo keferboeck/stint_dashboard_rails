@@ -34,3 +34,9 @@ u = User.first
 u.send_reset_password_instructions
 # open http://localhost:3000/letter_opener
 ```
+
+## Run Cron Job locally
+
+```
+curl -X POST "http://localhost:3000/admin/scheduler/run?token=dev-only-token"
+```

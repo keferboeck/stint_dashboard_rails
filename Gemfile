@@ -53,6 +53,8 @@ group :test do
   gem "selenium-webdriver"
 end
 
+gem "csv"
+
 gem 'redis', '~> 5.2'
 gem 'sidekiq', '~> 7.3'
 gem 'mailchimp_transactional', '~> 1.0'

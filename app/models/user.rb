@@ -9,7 +9,8 @@ class User < ApplicationRecord
   validates :last_name,  presence: true
   validates :role,       presence: true
 
-  # --- role helpers (works whether role is a string or an enum/integer) ---
+  scope :admins, -> { where(role: User.roles[:admin]) }
+
   def admin?
     role.to_s == "admin"
   end

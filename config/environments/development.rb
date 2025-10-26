@@ -29,6 +29,8 @@ Rails.application.configure do
   }
   Rails.application.routes.default_url_options = config.action_mailer.default_url_options
 
+  config.active_job.queue_adapter = :inline
+
   config.active_support.deprecation = :log
   config.active_record.migration_error = :page_load
   config.active_record.verbose_query_logs = true

@@ -1,5 +1,5 @@
 module MailerHelper
   def support_email
-    ENV.fetch("SUPPORT_EMAIL", "georg@keferboeck.com")
+    ENV["SUPPORT_EMAIL"].presence || "georg@keferboeck.com"
   end
 end

@@ -1,0 +1,15 @@
+<% content_for :title, "Settings updated" %>
+<% content_for :heading, "Settings updated" %>
+
+<p style="margin:0 0 12px 0;">
+  The following setting(s) were changed:
+</p>
+<ul style="margin:0 0 16px 20px; padding:0;">
+  <% @changed_keys.each do |key| %>
+    <li><code><%= key %></code></li>
+  <% end %>
+</ul>
+
+<p style="margin:0 0 0 0;">
+  Triggered by: <strong><%= @actor.try(:email) || @actor.try(:to_s) || "System" %></strong>
+</p>

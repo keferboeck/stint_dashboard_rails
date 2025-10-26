@@ -103,6 +103,7 @@ GEM
     crass (1.0.6)
     css_parser (1.21.1)
       addressable
+    csv (3.3.5)
     date (3.4.1)
     debug (1.11.0)
       irb (~> 1.10)
@@ -405,6 +406,7 @@ DEPENDENCIES
   bootsnap
   brakeman
   capybara
+  csv
   debug
   devise (~> 4.9)
   dotenv-rails
