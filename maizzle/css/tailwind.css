@@ -1,6 +1,0 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* Email-safe resets */
-img { border: 0; line-height: 100%; vertical-align: middle; }
