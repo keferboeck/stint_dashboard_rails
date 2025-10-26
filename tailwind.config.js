@@ -20,7 +20,10 @@ module.exports = {
       },
       keyframes: {
         'slide-in': { '0%': { transform: 'translateY(-10px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
-        'fade-out': { '0%': { opacity: '1' }, '100%': { opacity: '0' } },
+        'fade-out': {
+          '0%':   { opacity: '1', transform: 'translateY(0)' },
+          '100%': { opacity: '0', transform: 'translateY(-10px)' }
+        },
         spin: { to: { transform: 'rotate(360deg)' } },
         ping: { '75%, 100%': { transform: 'scale(2)', opacity: '0' } },
         pulse: { '50%': { opacity: '.5' } },
@@ -31,7 +34,7 @@ module.exports = {
       },
       animation: {
         'slide-in': 'slide-in 0.3s ease-out',
-        'fade-out': 'fade-out 0.5s ease-in forwards',
+        'fade-out': 'fade-out 1.2s ease-in forwards',
         none: 'none',
         spin: 'spin 1s linear infinite',
         ping: 'ping 1s cubic-bezier(0, 0, 0.2, 1) infinite',

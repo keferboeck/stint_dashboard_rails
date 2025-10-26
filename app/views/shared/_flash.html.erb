@@ -1,4 +1,4 @@
-<div class="fixed top-4 right-4 z-50 space-y-2">
+<div class="fixed top-4 right-4 z-50 space-y-2" id="flash-stack">
   <% flash.each do |type, message| %>
     <% tone =
          case type.to_s
@@ -7,10 +7,40 @@
          else "bg-white/10 text-white/90 border border-white/20"
          end %>
     <div
-      data-controller="flash"
       class="px-4 py-2 rounded-lg shadow-lg <%= tone %> animate-slide-in"
+      data-flash
+      data-timeout="4000"
     >
       <%= message %>
     </div>
   <% end %>
 </div>
+
+<script>
+    (function () {
+        function setupFlashAutoDismiss() {
+            var flashes = document.querySelectorAll('[data-flash]');
+            flashes.forEach(function (el) {
+                var ms = parseInt(el.getAttribute('data-timeout') || '2500', 10);
+                if (isNaN(ms) || ms < 0) ms = 2500;
+
+                setTimeout(function () {
+                    el.classList.add('animate-fade-out');
+
+                    // wait a bit longer to actually remove it (1.5s = animation + buffer)
+                    var done = function () {
+                        if (el && el.parentNode) el.parentNode.removeChild(el);
+                    };
+                    el.addEventListener('animationend', done, { once: true });
+                    setTimeout(done, 500);
+                }, ms);
+            });
+        }
+
+        if (window.Turbo) {
+            document.addEventListener('turbo:load', setupFlashAutoDismiss, { once: true });
+        } else {
+            document.addEventListener('DOMContentLoaded', setupFlashAutoDismiss, { once: true });
+        }
+    })();
+</script>
