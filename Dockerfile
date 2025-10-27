@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 FROM ruby:3.3.9-slim
 
-# Minimal OS deps (no node/npm)
+# Minimal OS deps
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
       build-essential libpq-dev libyaml-dev pkg-config git curl \
@@ -18,19 +18,19 @@ ENV RAILS_ENV=production \
     RAILS_SERVE_STATIC_FILES=true \
     PORT=8080
 
-# Install gems first for better layer caching
+# Gems layer
 COPY Gemfile Gemfile.lock ./
 RUN bundle install --jobs 4 --retry 3
 
-# Copy app
+# App source
 COPY . .
 
-# Precompile assets (Tailwind via tailwindcss-rails binary)
-# Use a dummy secret so Rails can boot in asset compile phase.
-ENV SECRET_KEY_BASE_DUMMY=1
-RUN bundle exec rails assets:precompile
+# Precompile assets for production only (dummy DB + secret so Rails boots)
+RUN SECRET_KEY_BASE=dummy \
+    DATABASE_URL="postgresql://postgres:postgres@localhost:5432/dummy" \
+    bin/rails assets:precompile
 
-# Runtime
+# Runtime setup
 RUN mkdir -p tmp/pids tmp/cache tmp/sockets log
 EXPOSE 8080
 CMD ["bundle", "exec", "puma", "-C", "config/puma.rb"]
