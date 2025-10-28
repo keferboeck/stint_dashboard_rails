@@ -54,18 +54,6 @@ Rails.application.configure do
   config.hosts << default_host
   config.hosts << /\A.*\.ondigitalocean\.app\z/
 
-  # --- Action Mailer (Mandrill SMTP) ---
-  config.action_mailer.perform_caching = false
-  config.action_mailer.raise_delivery_errors = true
-  config.action_mailer.delivery_method = :smtp
-  config.action_mailer.smtp_settings = {
-    address:              "smtp.mandrillapp.com",
-    port:                 587,
-    user_name:            "mandrill",
-    password:             ENV["MANDRILL_API_KEY"],
-    authentication:       :login,
-    enable_starttls_auto: true
-  }
 
   # --- I18n ---
   config.i18n.fallbacks = true
