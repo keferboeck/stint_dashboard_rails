@@ -15,19 +15,49 @@
     </div>
     <div class="md:col-span-2">
       <%= f.label :role, class: "block text-sm mb-1" %>
-      <%= f.select :role, User.roles.keys, {}, class: "w-full bg-white/5 border border-white/10 rounded px-3 py-2" %>
+      <%= f.select :role, User.roles.keys, {}, class: "w-full bg-white/5 border border-white/10 rounded px-3 py-2", data: { action: "change->userRole#onChange" } %>
     </div>
   </div>
 
-  <div class="border border-white/10 rounded-lg p-4">
+  <% is_new = @user.new_record? %>
+  <% role    = params.dig(:user, :role) || @user.role || "viewer" %>
+
+  <div class="border border-white/10 rounded-lg p-4" data-controller="userRole" data-user-role-initial="<%= role %>" data-user-role-is-new="<%= is_new %>">
     <div class="text-sm uppercase tracking-wider text-white/50 mb-2">Notifications</div>
-    <div class="grid md:grid-cols-2 gap-3">
-      <label class="flex items-center gap-2"><%= f.check_box :notify_all_new_schedules %> (A) New campaigns (any)</label>
-      <label class="flex items-center gap-2"><%= f.check_box :notify_all_sent_copies %> (B) Copy of any sent</label>
-      <label class="flex items-center gap-2"><%= f.check_box :notify_all_campaign_summaries %> (C) Summary after run (any)</label>
-      <label class="flex items-center gap-2"><%= f.check_box :notify_own_new_schedules %> (D) New campaigns (own)</label>
-      <label class="flex items-center gap-2"><%= f.check_box :notify_own_sent_copies %> (E) Copy of sent (own)</label>
-      <label class="flex items-center gap-2"><%= f.check_box :notify_own_campaign_summaries %> (F) Summary after run (own)</label>
+
+    <!-- Admin sees all -->
+    <div class="grid md:grid-cols-2 gap-3" data-user-role-target="admin" style="<%= role == "admin" ? "" : "display:none" %>">
+      <label class="flex items-center gap-2"><%= f.check_box :notify_new_scheduled_all %> (A) New campaigns any</label>
+      <label class="flex items-center gap-2"><%= f.check_box :notify_copy_all %> (B) Copy of any sent</label>
+      <label class="flex items-center gap-2"><%= f.check_box :notify_summary_all %> (C) Summary after run any</label>
+
+      <label class="flex items-center gap-2">
+        <%= f.check_box :notify_new_scheduled_mine, { checked: is_new ? true : !!@user.notify_new_scheduled_mine }, "1", "0" %> (D) New campaigns own
+      </label>
+      <label class="flex items-center gap-2">
+        <%= f.check_box :notify_copy_mine, { checked: is_new ? true : !!@user.notify_copy_mine }, "1", "0" %> (E) Copy of sent own
+      </label>
+      <label class="flex items-center gap-2">
+        <%= f.check_box :notify_summary_mine, { checked: is_new ? true : !!@user.notify_summary_mine }, "1", "0" %> (F) Summary after run own
+      </label>
+    </div>
+
+    <!-- Staff sees only own -->
+    <div class="grid md:grid-cols-2 gap-3" data-user-role-target="staff" style="<%= role == "staff" ? "" : "display:none" %>">
+      <label class="flex items-center gap-2">
+        <%= f.check_box :notify_new_scheduled_mine, { checked: is_new ? true : !!@user.notify_new_scheduled_mine }, "1", "0" %> (D) New campaigns own
+      </label>
+      <label class="flex items-center gap-2">
+        <%= f.check_box :notify_copy_mine, { checked: is_new ? true : !!@user.notify_copy_mine }, "1", "0" %> (E) Copy of sent own
+      </label>
+      <label class="flex items-center gap-2">
+        <%= f.check_box :notify_summary_mine, { checked: is_new ? true : !!@user.notify_summary_mine }, "1", "0" %> (F) Summary after run own
+      </label>
+    </div>
+
+    <!-- Viewer sees none -->
+    <div class="text-sm text-white/50" data-user-role-target="viewer" style="<%= role == "viewer" ? "" : "display:none" %>">
+      Keine Benachrichtigungen für diesen Rollen Typ.
     </div>
   </div>
 
@@ -36,3 +66,33 @@
     <%= link_to "Cancel", admin_users_path, class: "px-4 py-2 bg-white/10 rounded" %>
   </div>
 <% end %>
+
+<script>
+    // tiny controller that keeps everything inside the form, so f stays in scope
+    document.addEventListener("DOMContentLoaded", function () {
+        const wrap = document.querySelector('[data-controller="userRole"]');
+        if (!wrap) return;
+
+        const roleSelect = document.querySelector('select[name="user[role]"]');
+        const admin  = wrap.querySelector('[data-user-role-target="admin"]');
+        const staff  = wrap.querySelector('[data-user-role-target="staff"]');
+        const viewer = wrap.querySelector('[data-user-role-target="viewer"]');
+        const isNew  = wrap.dataset.userRoleIsNew === "true";
+
+        function show(node, on) { if (node) node.style.display = on ? "" : "none"; }
+        function apply(role) {
+            show(admin,  role === "admin");
+            show(staff,  role === "staff");
+            show(viewer, role === "viewer");
+            if (isNew && role === "staff") {
+                ["notify_new_scheduled_mine","notify_copy_mine","notify_summary_mine"].forEach(n => {
+                    const box = wrap.querySelector(`input[name="user[${n}]"]`);
+                    if (box) box.checked = true;
+                });
+            }
+        }
+
+        apply(wrap.dataset.userRoleInitial || "viewer");
+        if (roleSelect) roleSelect.addEventListener("change", e => apply(e.target.value));
+    });
+</script>
