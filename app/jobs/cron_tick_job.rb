@@ -108,35 +108,45 @@ class CronTickJob < ApplicationJob
 
   # Minimal Mandrill call without extra gems.
   # Endpoint: /messages/send-template.json
+  # Minimal Mandrill call without extra gems (Mailchimp merge tags).
   def mandrill_send_template!(to:, template:, subject:, vars:, from_email:, from_name:, preview: nil)
     api_key = ENV["MANDRILL_API_KEY"]
     raise "MANDRILL_API_KEY missing" if api_key.blank?
 
     uri = URI("https://mandrillapp.com/api/1.0/messages/send-template.json")
-    template_content = [] # we use merge vars instead of editing template blocks
+
+    # Mailchimp merge language expects UPPERCASE tag names like *|FNAME|*
+    per_rcpt_vars = (vars || {}).each_with_object([]) do |(k, v), arr|
+      arr << { name: k.to_s.upcase, content: v.to_s }
+    end
+
+    global_vars = []
+    if preview.present?
+      # This feeds *|MC_PREVIEW_TEXT|* in your template
+      global_vars << { name: "MC_PREVIEW_TEXT", content: preview.to_s }
+    end
 
     message = {
       subject:     subject,
       from_email:  from_email,
       from_name:   from_name,
       to:          [{ email: to, type: "to" }],
-      merge_language: "handlebars",
-      merge: true,
-      global_merge_vars: [],
+      merge:       true,
+      merge_language: "mailchimp", # ← key change
+      global_merge_vars: global_vars,
       merge_vars: [
         {
           rcpt: to,
-          vars: (vars || {}).map { |k, v| { name: k.to_s, content: v.to_s } }
+          vars: per_rcpt_vars
         }
       ],
-      tags: ["stint-dashboard"],
-      headers: (preview.present? ? { "X-Preview-Text" => preview.to_s } : {})
+      tags: ["stint-dashboard"]
     }
 
     req_body = {
       key: api_key,
       template_name: template,
-      template_content: template_content,
+      template_content: [], # not used; we rely on merge vars
       message: message,
       async: true
     }.to_json
