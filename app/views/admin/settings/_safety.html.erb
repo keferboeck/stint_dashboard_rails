@@ -40,17 +40,120 @@
     </div>
 
     <!-- Purge block (unchanged UI) -->
+    <!-- Purge block -->
     <div class="pt-3 border-t border-white/10">
       <div class="font-medium text-red-300">Delete future scheduled campaigns</div>
       <div class="text-sm text-white/60 mb-2">This will remove future campaigns and their pending emails.</div>
-      <%= form_with url: purge_future_schedules_admin_settings_path, method: :delete,
-                    class: "flex items-center gap-2", data: { turbo_stream: true } do %>
-        <%= hidden_field_tag :confirm, "YES" %>
-        <%= button_tag "Purge future (type=YES preset)",
-                       data: { turbo_confirm: "Really delete future campaigns?" },
-                       class: "px-3 py-2 bg-red-600/20 text-red-200 rounded hover:bg-red-600/30" %>
+
+      <%= form_with url: purge_future_schedules_admin_settings_path,
+                    method: :delete,
+                    class: "flex items-center gap-2 js-purge-form",
+                    data: { turbo: false } do %>
+        <%= hidden_field_tag :confirm, "", id: "purge-confirm-hidden" %>
+        <button type="button"
+                class="px-3 py-2 bg-red-600/20 text-red-200 rounded hover:bg-red-600/30 js-open-purge-modal">
+          Purge future (confirmation required)
+        </button>
       <% end %>
     </div>
+
+    <!-- Modal: Type YES to confirm -->
+    <!-- Modal: Type YES to confirm -->
+    <div class="js-purge-modal fixed inset-0 z-50 hidden" aria-hidden="true">
+      <!-- Backdrop -->
+      <div class="absolute inset-0 bg-black"></div>
+
+      <!-- Dialog -->
+      <div class="relative mx-auto mt-24 w-full max-w-md rounded-xl border border-white/10 bg-[#1b1b1b] p-6 shadow-2xl">
+        <h3 class="text-h5 mb-2 text-white">Confirm deletion</h3>
+        <p class="text-sm text-white/70 mb-4">
+          This will permanently delete all campaigns scheduled in the future and their pending emails.
+          To proceed, type <span class="font-semibold text-red-300">YES</span> in the box below.
+        </p>
+
+        <label for="purge-confirm-input" class="block text-sm mb-1 text-white/80">Type YES to confirm</label>
+        <input id="purge-confirm-input"
+               type="text"
+               class="w-full rounded border border-white/10 bg-white/10 px-3 py-2 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-red-400"
+               placeholder="YES"
+               autocomplete="off" />
+
+        <div class="mt-5 flex items-center justify-end gap-2">
+          <button type="button"
+                  class="px-3 py-2 rounded bg-white/10 text-white hover:bg-white/20 js-purge-cancel">
+            Cancel
+          </button>
+          <button type="button"
+                  class="px-3 py-2 rounded bg-red-600/40 text-red-100 cursor-not-allowed js-purge-confirm"
+                  disabled>
+            Delete future schedules
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+        (function() {
+            const modal      = document.querySelector('.js-purge-modal');
+            const openBtn    = document.querySelector('.js-open-purge-modal');
+            const cancelBtn  = document.querySelector('.js-purge-cancel');
+            const confirmBtn = document.querySelector('.js-purge-confirm');
+            const input      = document.getElementById('purge-confirm-input');
+            const hidden     = document.getElementById('purge-confirm-hidden');
+            const form       = document.querySelector('.js-purge-form');
+
+            if (!modal || !openBtn || !cancelBtn || !confirmBtn || !input || !hidden || !form) return;
+
+            function openModal() {
+                modal.classList.remove('hidden');
+                modal.setAttribute('aria-hidden', 'false');
+                input.value = '';
+                confirmBtn.disabled = true;
+                confirmBtn.classList.add('cursor-not-allowed', 'bg-red-600/40', 'text-red-100');
+                confirmBtn.classList.remove('bg-red-600', 'text-black');
+                setTimeout(() => input.focus(), 0);
+            }
+
+            function closeModal() {
+                modal.classList.add('hidden');
+                modal.setAttribute('aria-hidden', 'true');
+            }
+
+            function updateState() {
+                const ok = input.value.trim().toUpperCase() === 'YES';
+                confirmBtn.disabled = !ok;
+                if (ok) {
+                    confirmBtn.classList.remove('cursor-not-allowed', 'bg-red-600/40', 'text-red-100');
+                    confirmBtn.classList.add('bg-red-600', 'text-black');
+                } else {
+                    confirmBtn.classList.add('cursor-not-allowed', 'bg-red-600/40', 'text-red-100');
+                    confirmBtn.classList.remove('bg-red-600', 'text-black');
+                }
+            }
+
+            function submitPurge() {
+                hidden.value = 'YES';
+                form.submit();
+            }
+
+            openBtn.addEventListener('click', openModal);
+            cancelBtn.addEventListener('click', closeModal);
+            input.addEventListener('input', updateState);
+            confirmBtn.addEventListener('click', function() {
+                if (!confirmBtn.disabled) submitPurge();
+            });
+
+            // Close with Escape
+            document.addEventListener('keydown', function(e) {
+                if (!modal.classList.contains('hidden') && e.key === 'Escape') closeModal();
+            });
+
+            // Click outside dialog to close
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) closeModal();
+            });
+        })();
+    </script>
 
     <!-- Cron block (unchanged UI; still rendered here so the same replace updates it too) -->
     <div class="pt-3 border-t border-white/10 flex items-center justify-between">

@@ -54,23 +54,42 @@ class Admin::SettingsController < ApplicationController
     end
   end
 
+  # app/controllers/admin/settings_controller.rb
   def purge_future_schedules
-    if params[:confirm] != "YES"
+    # require the guard confirmation
+    unless params[:confirm].to_s == "YES"
       redirect_to admin_settings_path, alert: "Confirmation missing. Type YES to proceed."
       return
     end
 
-    count = 0
+    now = Time.current
+    future_campaigns   = Campaign.where("scheduled_at > ?", now)
+    future_email_scope = Email.where(campaign_id: future_campaigns.select(:id))
+
+    counts = {
+      campaigns: future_campaigns.count,
+      emails:    future_email_scope.count
+    }
+
     ActiveRecord::Base.transaction do
-      Campaign.where("scheduled_at > ?", Time.current).find_each do |c|
-        Email.where(campaign_id: c.id).delete_all
-        c.destroy!
-        count += 1
-      end
+      future_email_scope.delete_all
+      future_campaigns.find_each(&:destroy!) # keep callbacks if any
     end
 
-    notify_event!(:purged_future, "Purged #{count} future campaign(s)", icon: :red)
-    redirect_to admin_settings_path, notice: "Purged #{count} future campaign(s)."
+    # single, dedicated email for purge (no duplicates, no event mail)
+    AdminNoticeMailer.purge_future(
+      to:     admin_recipients_for_env,
+      counts: counts,
+      actor:  current_user.email,
+      at:     Time.current
+    ).deliver_later
+
+    redirect_to admin_settings_path,
+                notice: "Purged #{counts[:campaigns]} future campaign(s) and #{counts[:emails]} pending email(s)."
+
+  rescue => e
+    Rails.logger.error("[purge_future_schedules] #{e.class}: #{e.message}")
+    redirect_to admin_settings_path, alert: "Failed to purge future schedules: #{e.message}"
   end
 
   def toggle_cron

@@ -29,6 +29,14 @@ class AdminNoticeMailer < ApplicationMailer
     mail(to: to, subject: subject_with_dot(:info, "Settings updated: #{changed_keys.join(', ')}"))
   end
 
+  def purge_future(to:, counts:, actor:, at:)
+    @heading    = "Future schedules purged"
+    @counts     = counts # { campaigns: Integer, emails: Integer }
+    @actor      = actor  # String (email)
+    @human_time = at.in_time_zone("Europe/London").strftime("%A, %d %B %Y at %H:%M %Z")
+    mail(to: to, subject: subject_with_dot(:critical, @heading))
+  end
+
   private
 
   # Extracts "by <email> at <time>" from your existing message string, if present.

@@ -61,23 +61,6 @@
             });
         }
 
-        // Purge future
-        const purgeBtn = document.getElementById('purge-btn');
-        if (purgeBtn) {
-            purgeBtn.addEventListener('click', async () => {
-                if (!confirm("Really delete future campaigns?")) return;
-                purgeBtn.disabled = true;
-                try {
-                    const data = await req(purgeBtn.dataset.endpoint, 'DELETE', { confirm: "YES" });
-                    alert(`Purged ${data.purged} future campaign(s).`);
-                } catch (e) {
-                    alert(e.message || "Purge failed");
-                } finally {
-                    purgeBtn.disabled = false;
-                }
-            });
-        }
-
         // Toggle cron
         const cronBtn = document.getElementById('cron-btn');
         const cronStatus = document.getElementById('cron-status');
@@ -97,4 +80,20 @@
             });
         }
     })();
+</script>
+
+<script>
+    // vanilla JS: disable the purge button once submitted to show immediate feedback
+    document.addEventListener('turbo:load', function () {
+        var form = document.querySelector('.js-purge-form');
+        if (!form) return;
+        form.addEventListener('submit', function () {
+            var btn = form.querySelector('.js-purge-btn');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Purging…';
+                btn.classList.add('opacity-60','cursor-not-allowed');
+            }
+        });
+    });
 </script>
