@@ -8,6 +8,20 @@ class Admin::CampaignWizardsController < ApplicationController
   before_action :set_invalids,              only: %i[preview configure finalize]
   before_action :load_mandrill_templates,   only: %i[configure]
 
+  # Allow a simple GET probe that bypasses auth & CSRF (debug only)
+  skip_before_action :authenticate_user!, only: :ping
+  skip_forgery_protection only: :ping
+
+  def ping
+    Rails.logger.info "[wizard] PING reached"
+    render plain: "OK", status: :ok
+  end
+
+  def auth_ping
+    Rails.logger.info "[wizard] AUTH_PING by #{current_user&.email || 'nil'}"
+    render plain: "OK (auth)", status: :ok
+  end
+
   # GET /admin/campaign_wizard (singular resource#show)
   def show
     # just render upload form (view: app/views/admin/campaign_wizards/show.html.erb)
@@ -18,38 +32,112 @@ class Admin::CampaignWizardsController < ApplicationController
   end
 
   # POST /admin/campaign_wizard/upload_csv
+  # POST /admin/campaign_wizard/upload_csv
+  # POST /admin/campaign_wizard/upload_csv
   def upload_csv
-    file = params[:file]
-    return redirect_back fallback_location: admin_campaign_wizard_path, alert: "Please choose a CSV file." unless file
+    started_at = Time.current
+    Rails.logger.info "[wizard] upload_csv START by #{current_user.email} at #{started_at} (params keys: #{params.keys.inspect})"
 
-    rows = CSV.read(file.tempfile, headers: true).map(&:to_h)
+    file = params[:file]
+    unless file
+      Rails.logger.info "[wizard] upload_csv NO FILE"
+      return redirect_back fallback_location: admin_campaign_wizard_path, alert: "Please choose a CSV file."
+    end
+
+    # get a stable path for CSV
+    path = file.respond_to?(:tempfile) ? file.tempfile.path : file.path
+    unless path && File.exist?(path)
+      Rails.logger.info "[wizard] upload_csv BAD PATH"
+      return redirect_back fallback_location: admin_campaign_wizard_path, alert: "Could not read uploaded file."
+    end
+
+    # create upload record first
+    upload = TempUpload.create!(
+      user: current_user,
+      token: SecureRandom.hex(12),
+      filename: file.original_filename
+    )
+    Rails.logger.info "[wizard] upload_csv TEMP UPLOAD id=#{upload.id} token=#{upload.token}"
+
+    invalids   = []
+    batch      = []
+    total_rows = 0
+    inserted   = 0
+    batch_size = 1_000
+
+    # dev safety cap (so you never block your dev server on a gigantic CSV)
+    dev_cap = (Rails.env.development? ? (ENV["WIZARD_MAX_ROWS"] || "10000").to_i : nil)
 
     norm = ->(h) { (h || "").to_s.strip }
-    headers  = rows.first&.keys&.map { |k| norm.call(k) } || []
-    email_key = headers.find { |h| h.casecmp("email").zero? }
-    return redirect_back fallback_location: admin_campaign_wizard_path, alert: "CSV must contain an EMAIL column." unless email_key
 
-    upload   = TempUpload.create!(user: current_user, token: SecureRandom.hex(12), filename: file.original_filename)
-    invalids = []
+    # --- discover headers (BOM + UTF-8 safe) ---
+    headers = nil
+    email_key = nil
 
-    rows.each_with_index do |row, i|
+    CSV.open(path, "r:bom|utf-8", headers: true) do |csv|
+      if (first = csv.first)
+        headers = first.headers.map { |k| norm.call(k) }
+        email_key = headers.find { |h| h.casecmp("email").zero? }
+      end
+    end
+
+    unless email_key
+      upload.destroy
+      Rails.logger.info "[wizard] upload_csv NO EMAIL HEADER"
+      return redirect_back fallback_location: admin_campaign_wizard_path, alert: "CSV must contain an EMAIL column."
+    end
+    Rails.logger.info "[wizard] upload_csv EMAIL HEADER OK (#{email_key})"
+
+    # --- parse rows streaming ---
+    CSV.foreach(path, headers: true, encoding: "bom|utf-8") do |row|
+      total_rows += 1
       clean = {}
-      row.each { |k, v| clean[norm.call(k)] = norm.call(v) }
+      row.to_h.each { |k, v| clean[norm.call(k)] = norm.call(v) }
 
       addr = clean[email_key]
       if addr.blank? || !(addr =~ URI::MailTo::EMAIL_REGEXP)
-        invalids << { row: i + 2, email: addr.presence || "(blank)" } # +2 because headers line is row 1
+        invalids << { row: total_rows + 1, email: addr.presence || "(blank)" }
         next
       end
 
       fields = clean.except(email_key)
-      TempRecipient.create!(temp_upload: upload, email: addr, fields: fields)
+      batch << {
+        temp_upload_id: upload.id,
+        email: addr,
+        fields: fields,
+        created_at: Time.current,
+        updated_at: Time.current
+      }
+
+      if batch.size >= batch_size
+        TempRecipient.insert_all(batch)
+        inserted += batch.size
+        batch.clear
+      end
+
+      # dev cap guard (prevents request from becoming “forever” on huge CSVs)
+      if dev_cap && (inserted + batch.size) >= dev_cap
+        Rails.logger.info "[wizard] upload_csv DEV CAP HIT at #{dev_cap} rows"
+        break
+      end
     end
 
+    TempRecipient.insert_all(batch) if batch.any?
+    inserted += batch.size
     upload.update!(row_count: upload.temp_recipients.count)
 
     session[:campaign_wizard] = { token: upload.token, invalids: invalids }
+
+    valid_count   = upload.row_count
+    invalid_count = invalids.size
+    flash[:notice] =
+      "Imported #{valid_count} valid #{'email'.pluralize(valid_count)}. " \
+        "Skipped #{invalid_count} invalid."
+
     redirect_to preview_admin_campaign_wizard_path(token: upload.token)
+  rescue => e
+    Rails.logger.error "[wizard] upload_csv ERROR #{e.class}: #{e.message}\n#{e.backtrace&.first(6)&.join("\n")}"
+    redirect_back fallback_location: admin_campaign_wizard_path, alert: "Upload failed: #{e.message}"
   end
 
   # GET /admin/campaign_wizard/preview
@@ -73,12 +161,10 @@ class Admin::CampaignWizardsController < ApplicationController
   end
 
   # POST /admin/campaign_wizard/finalize
+  # POST /admin/campaign_wizard/finalize
   def finalize
-    # token comes nested in the form
     token = params.dig(:campaign, :token)
 
-    # load via before_action
-    # (@temp_upload is set by load_temp_upload and now finds nested tokens)
     recipients = @temp_upload.temp_recipients.order(:id)
     if recipients.empty?
       flash[:alert] = "No valid recipients to send to."
@@ -89,7 +175,7 @@ class Admin::CampaignWizardsController < ApplicationController
     preview_text = params.dig(:campaign, :preview_text).to_s.strip
     send_now     = params.dig(:campaign, :send_now) == "1"
     local_time   = params.dig(:campaign, :scheduled_at_local).to_s.strip
-    template     = params[:template_slug].to_s.strip  # from select_tag :template_slug
+    template     = params[:template_slug].to_s.strip
 
     errors = []
     errors << "Subject is required"    if subject.blank?
@@ -97,7 +183,6 @@ class Admin::CampaignWizardsController < ApplicationController
     errors << "Choose a schedule time" if !send_now && local_time.blank?
 
     if errors.any?
-      # keep filled values around
       stash_state(token, {
         subject: subject,
         preview_text: preview_text,
@@ -116,7 +201,6 @@ class Admin::CampaignWizardsController < ApplicationController
         parse_london_wall_to_utc(local_time)
       end
 
-    # IMPORTANT: only use allowed statuses — no "QUEUED"
     campaign = Campaign.new(
       name:          "CSV import #{Time.current.to_i}",
       template_name: template,
@@ -137,19 +221,16 @@ class Admin::CampaignWizardsController < ApplicationController
 
     Campaign.transaction do
       campaign.save!
-
-      if send_now
-        # fire immediately
-        CampaignTriggerJob.perform_later(campaign.id)
-      end
-
-      # cleanup temp data
       @temp_upload.destroy!
       session.delete(:campaign_wizard)
     end
 
+    # enqueue AFTER commit, and use the job you actually have
+    CronTickJob.perform_later(campaign.id) if send_now
+
     flash[:notice] = send_now ? "Campaign is sending." : "Campaign scheduled."
     redirect_to admin_campaign_path(campaign)
+
   rescue => e
     Rails.logger.error("[wizard] finalize failed: #{e.class}: #{e.message}")
     flash[:alert] = "Could not finalize campaign: #{e.message}"

@@ -10,7 +10,7 @@
 </span>
 
     <% if Array(@invalids).any? %>
-      <details class="ml-2">
+      <details id="invalids-details" class="ml-2">
         <summary class="cursor-pointer inline-flex items-center px-2 py-1 rounded bg-red-500/15 text-red-200 text-sm">
           <strong class="mx-1"><%= Array(@invalids).size %></strong> invalid not imported — click to view
         </summary>
@@ -75,3 +75,17 @@
     <% end %>
   </div>
 </div>
+
+<% if Array(@invalids).any? %>
+  <script>
+      (function() {
+          var d = document.getElementById('invalids-details');
+          if (!d) return;
+          // open it and scroll into view once the DOM is ready
+          requestAnimationFrame(function() {
+              d.setAttribute('open', 'open');
+              d.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          });
+      })();
+  </script>
+<% end %>

@@ -2,7 +2,12 @@
   <h1 class="text-2xl font-semibold mb-4">Create a new campaign</h1>
   <p class="mb-6 text-white/70">Step 1: upload your CSV. It must contain an <code class="px-1 rounded bg-white/10">EMAIL</code> column.</p>
 
-  <%= form_with url: upload_csv_admin_campaign_wizard_path, multipart: true, method: :post, class: "space-y-4" do %>
+  <%= form_tag upload_csv_admin_campaign_wizard_path,
+               method: :post,
+               multipart: true,
+               authenticity_token: true,
+               data: { turbo: false },
+               class: "space-y-4" do %>
     <div>
       <label class="block mb-1 text-sm text-white/80">CSV file</label>
       <%= file_field_tag :file, accept: ".csv", class: "w-full text-white" %>

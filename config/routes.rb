@@ -43,6 +43,10 @@ Rails.application.routes.draw do
       post :configure
       post :finalize
       delete :cancel
+
+      # --- debug pings ---
+      get :ping          # no auth, no CSRF
+      get :auth_ping     # requires auth
     end
   end
 

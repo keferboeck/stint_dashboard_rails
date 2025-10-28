@@ -3,17 +3,20 @@
   <h2 class="text-xl font-semibold mb-4">Upload recipients (CSV)</h2>
   <p class="mb-4 text-white/70">Step 1: upload your CSV to begin.</p>
 
-  <%= form_with url: upload_csv_admin_campaign_wizard_path,
-                multipart: true, method: :post, class: "space-y-4" do %>
+  <%= form_tag upload_csv_admin_campaign_wizard_path,
+               method: :post,
+               multipart: true,
+               authenticity_token: true,
+               data: { turbo: false },
+               class: "space-y-4",
+               enforce_utf8: true do %>
     <div>
       <label class="block mb-1 text-sm text-white/80">CSV file</label>
       <%= file_field_tag :file, accept: ".csv", class: "w-full" %>
       <p class="text-xs text-white/50 mt-1">Must include an <code>EMAIL</code> column.</p>
     </div>
-
     <div class="pt-2">
-      <%= submit_tag "Upload & continue",
-                     class: "px-4 py-2 rounded bg-brand-green/20 hover:bg-brand-green/30" %>
+      <%= submit_tag "Upload & continue", class: "px-4 py-2 rounded bg-brand-green/20 hover:bg-brand-green/30" %>
       <%= link_to "Cancel", dashboard_path, class: "ml-2 px-3 py-2 rounded bg-white/10 hover:bg-white/15" %>
     </div>
   <% end %>
