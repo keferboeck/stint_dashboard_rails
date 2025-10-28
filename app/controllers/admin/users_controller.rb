@@ -20,17 +20,29 @@ class Admin::UsersController < ApplicationController
     # end
   end
 
+  # app/controllers/admin/users_controller.rb
   def create
     @user = User.new(user_params)
 
-    # Enforce permissions after mass assignment
-    enforce_notification_permissions(@user)
-
-    temp_password = SecureRandom.base58(16)
+    # temporary password so Devise validations pass
+    temp_password = Devise.friendly_token.first(16)
     @user.password = @user.password_confirmation = temp_password
 
+    enforce_notification_permissions(@user) if respond_to?(:enforce_notification_permissions, true)
+
     if @user.save
-      flash[:notice] = "User created. Temporary password generated."
+      # Generate Devise reset token for the user
+      raw_token = @user.send(:set_reset_password_token)
+
+      # Send welcome + reset email via the shared layout
+      begin
+        UserWelcomeMailer.welcome(user: @user, reset_token: raw_token).deliver_later
+        flash[:notice] = "User created. Welcome email sent with password reset link."
+      rescue => e
+        Rails.logger.error("[user_welcome_mailer] #{e.class}: #{e.message}")
+        flash[:alert] = "User created, but sending the welcome email failed: #{e.message}"
+      end
+
       redirect_to admin_users_path
     else
       flash.now[:alert] = @user.errors.full_messages.to_sentence

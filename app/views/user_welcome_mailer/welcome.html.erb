@@ -1,0 +1,28 @@
+<%# app/views/user_welcome_mailer/welcome.html.erb %>
+
+<!-- Intro copy -->
+<p style="font-size:16px; line-height:1.6; color:rgba(255,255,255,0.85); margin:0 0 20px 0;">
+  Hello <%= (@user.first_name.presence || @user.email.split('@').first.capitalize) %>,
+</p>
+<p style="font-size:16px; line-height:1.6; color:rgba(255,255,255,0.85); margin:0 0 20px 0;">
+  Your account has been set up. Stint Dashboard helps you manage campaigns and email sending with clarity and control.
+  To get started, please choose a password for your account.
+</p>
+
+<!-- Primary CTA button -->
+<table role="presentation" style="border-collapse:collapse; margin:0 auto 20px auto;">
+  <tr>
+    <td style="background:#ffffff; border-radius:12px; padding:12px 20px;">
+      <a href="<%= @button_url %>"
+         style="display:inline-block; font-weight:700; font-size:16px; color:#000000; text-decoration:none;">
+        <%= @button_label.presence || "Set up your password" %>
+      </a>
+    </td>
+  </tr>
+</table>
+
+<!-- Fallback link -->
+<p style="font-size:14px; line-height:1.6; color:#999999; margin:0;">Or copy this link into your browser:</p>
+<p style="font-size:14px; line-height:1.6; margin:6px 0 0 0;">
+  <a href="<%= @button_url %>" style="color:#A49EF2; word-break:break-all;"><%= @button_url %></a>
+</p>
