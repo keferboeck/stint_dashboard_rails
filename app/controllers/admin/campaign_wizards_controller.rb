@@ -221,6 +221,7 @@ class Admin::CampaignWizardsController < ApplicationController
 
     Campaign.transaction do
       campaign.save!
+      notify_new_campaign(campaign)
       @temp_upload.destroy!
       session.delete(:campaign_wizard)
     end
@@ -312,5 +313,12 @@ class Admin::CampaignWizardsController < ApplicationController
 
   def set_invalids
     @invalids = session.dig(:campaign_wizard, :invalids) || []
+  end
+
+  def notify_new_campaign(campaign)
+    User.where(role: ["admin", "staff", "viewer"]).find_each do |u|
+      next unless u.notify_new_scheduled_all || (u.notify_new_scheduled_mine && u == campaign.user)
+      CampaignNotifierMailer.new_campaign(campaign, u).deliver_later
+    end
   end
 end

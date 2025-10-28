@@ -83,6 +83,7 @@ class CronTickJob < ApplicationJob
     new_status = failed_count.positive? ? "FAILED" : "SENT"
     campaign.update!(status: new_status)
     Rails.logger.info("[CronTickJob] campaign #{campaign.id} done sent=#{sent_count} failed=#{failed_count} status=#{new_status}")
+    notify_campaign_finished(campaign)
   end
 
   private
@@ -160,5 +161,20 @@ class CronTickJob < ApplicationJob
     raise "Mandrill HTTP #{res.code}: #{res.body}" unless res.is_a?(Net::HTTPSuccess)
 
     JSON.parse(res.body)
+  end
+
+  def notify_campaign_finished(campaign)
+    User.where(role: ["admin", "staff", "viewer"]).find_each do |u|
+      is_owner = (u.id == campaign.user_id)
+      is_admin = u.admin?
+
+      if (u.notify_copy_all && is_admin) || (u.notify_copy_mine && is_owner)
+        CampaignNotifierMailer.copy_sent(campaign, u).deliver_later
+      end
+
+      if (u.notify_summary_all && is_admin) || (u.notify_summary_mine && is_owner)
+        CampaignNotifierMailer.summary_after_run(campaign, u).deliver_later
+      end
+    end
   end
 end

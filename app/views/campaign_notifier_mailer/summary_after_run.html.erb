@@ -1,0 +1,21 @@
+<h2><%= @title %></h2>
+<p><%= @summary %></p>
+
+<p>
+  <strong>Subject:</strong> <%= @campaign.subject %><br>
+  <strong>Template:</strong> <%= @campaign.template_name %><br>
+  <strong>Ran at (UK):</strong>
+  <%= @campaign.updated_at.in_time_zone("London").strftime("%Y-%m-%d %H:%M") %>
+</p>
+
+<p><strong>Results:</strong><br>
+  Sent: <%= @stats[:sent] %><br>
+  Failed: <%= @stats[:failed] %><br>
+  Total: <%= @stats[:total] %>
+</p>
+
+<p><strong>Created by:</strong> <%= @creator&.email %></p>
+
+<p style="margin-top: 15px;">
+  <%= link_to "Open campaign report", admin_campaign_url(@campaign), style: "color:#00bfa6;" %>
+</p>
