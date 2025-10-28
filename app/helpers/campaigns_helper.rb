@@ -2,13 +2,17 @@ module CampaignsHelper
   # Heuristic: if scheduled_at exists and is ~ the created time, we treat it as "Send now"
   def delivery_badge(campaign)
     label =
-      if campaign.scheduled_at.present? && (campaign.scheduled_at - campaign.created_at).abs <= 5.minutes
-        "Send now"
+      if campaign.scheduled_at.present?
+        campaign.scheduled_at.future? ? "Scheduled" : "Send now"
       else
-        "Scheduled"
+        "Send now"
       end
 
-    content_tag(:span, label, class: "px-2 py-0.5 rounded bg-white/10")
+    content_tag(
+      :span,
+      label,
+      class: "inline-block px-2 py-0.5 rounded bg-white/10"
+    )
   end
 
   # Show scheduler user if present

@@ -1,59 +1,56 @@
 # app/controllers/admin/scheduler_controller.rb
-class Admin::SchedulerController < ActionController::Base
-  # External services (cron websites) won’t have your CSRF token:
-  protect_from_forgery with: :null_session
+class Admin::SchedulerController < ApplicationController
+  # This endpoint is called by your DO cron/worker via curl.
+  # It must be CSRF-exempt and auth-less, guarded by a token.
+  skip_before_action :verify_authenticity_token
+  skip_before_action :authenticate_user!
 
-  before_action :require_token!
-  before_action :ensure_cron_enabled!
-
-  # GET/POST /admin/scheduler/run
+  # POST /admin/scheduler/run?token=...
+  # GET  /admin/scheduler/run?token=...
   def run
-    tz   = AppSetting.instance.timezone.presence || "Europe/London"
-    now  = Time.find_zone(tz).now
-
-    # Find campaigns due now (you already have the schema/columns)
-    due = Campaign.where(status: "scheduled").where("scheduled_at <= ?", now)
-
-    enqueued = 0
-    failed   = 0
-
-    due.find_each do |c|
-      begin
-        # Mark as queued and enqueue a job to actually process it
-        c.update!(status: "queued")
-        CronTickJob.perform_later(c.id)
-        enqueued += 1
-      rescue => e
-        c.update(status: "failed", failure_reason: e.message)
-        failed += 1
-      end
+    unless valid_token?(params[:token])
+      Rails.logger.warn("[scheduler#run] invalid token")
+      return render plain: "forbidden", status: :forbidden
     end
 
-    render json: {
-      ok: true,
-      env: Rails.env,
-      timezone: tz,
-      now: now.iso8601,
-      enqueued: enqueued,
-      failed: failed
-    }
+    settings = AppSetting.instance
+
+    if settings.scheduling_on_hold
+      Rails.logger.info("[scheduler#run] scheduling_on_hold=TRUE — skip")
+      return render json: { ok: true, held: true, cron_enabled: settings.cron_enabled, picked: 0 }
+    end
+
+    unless settings.cron_enabled
+      Rails.logger.info("[scheduler#run] cron_enabled=FALSE — skip")
+      return render json: { ok: true, held: false, cron_enabled: false, picked: 0 }
+    end
+
+    now = Time.current
+    due_scope = Campaign.where(status: "SCHEDULED").where("scheduled_at <= ?", now)
+    due_ids   = due_scope.limit(200).pluck(:id) # hard cap to avoid stampede
+
+    picked = 0
+    due_ids.each do |cid|
+      CronTickJob.perform_later(cid)
+      picked += 1
+    end
+
+    Rails.logger.info("[scheduler#run] enqueued=#{picked}")
+    render json: { ok: true, held: false, cron_enabled: true, picked: picked, at: now.utc }
+  rescue => e
+    Rails.logger.error("[scheduler#run] ERROR #{e.class}: #{e.message}")
+    render json: { ok: false, error: "#{e.class}: #{e.message}" }, status: :internal_server_error
   end
 
   private
 
-  # Accept token via header or param. Different per-environment.
-  def require_token!
-    expected = ENV.fetch("CRON_TOKEN", "dev-only-token")
-    provided = request.headers["X-Cron-Token"].presence || params[:token].to_s
-    unless ActiveSupport::SecurityUtils.secure_compare(provided, expected)
-      render json: { ok: false, error: "unauthorized" }, status: :unauthorized
-    end
-  end
+  def valid_token?(token)
+    return false if token.blank?
 
-  def ensure_cron_enabled!
-    settings = AppSetting.instance
-    unless settings.cron_enabled
-      render json: { ok: false, error: "cron disabled" }, status: 423 # Locked
-    end
+    # Use CRON_TOKEN in all envs. In development also allow a fixed dev token.
+    expected = ENV["CRON_TOKEN"].to_s
+    return true if expected.present? && ActiveSupport::SecurityUtils.secure_compare(token.to_s, expected)
+
+    Rails.env.development? && token == "dev-only-token"
   end
 end

@@ -48,12 +48,19 @@
       </label>
     </div>
 
+    <%# ----- Schedule (UK time) with native datetime picker ----- %>
+    <% default_local =
+         (@form&.dig(:scheduled_at_local).presence) ||
+           Time.use_zone('London') { Time.zone.now.advance(minutes: 15).strftime('%Y-%m-%dT%H:%M') } %>
+
     <div>
       <label class="block mb-1 text-sm text-white/80">Schedule (UK time)</label>
-      <%= text_field_tag "campaign[scheduled_at_local]",
-                         @form&.dig(:scheduled_at_local),
-                         placeholder: "YYYY-MM-DDTHH:MM",
-                         class: "w-full bg-white/10 border border-white/10 rounded px-3 py-2 text-white placeholder-white/40" %>
+      <%= datetime_field_tag "campaign[scheduled_at_local]",
+                             default_local,
+                             id:    "campaign_scheduled_at_local",
+                             min:   Time.use_zone('London') { Time.zone.now.strftime('%Y-%m-%dT%H:%M') },
+                             step:  60,  # 60s increments; adjust if you want finer control
+                             class: "w-full bg-white/10 border border-white/10 rounded px-3 py-2 text-white placeholder-white/40" %>
       <p class="text-xs text-white/50 mt-1">Leave blank if “Send now” is ticked.</p>
     </div>
 
@@ -75,3 +82,22 @@
                 class: "px-3 py-2 inline-block rounded bg-white/10 hover:bg-white/20" %>
   </div>
 </div>
+
+
+<script>
+    (function () {
+        var sendNow = document.querySelector('input[name="campaign[send_now]"]');
+        var sched   = document.getElementById('campaign_scheduled_at_local');
+        if (!sendNow || !sched) return;
+
+        function sync() {
+            var on = sendNow.checked;
+            sched.disabled = on;
+            sched.classList.toggle('opacity-50', on);
+        }
+
+        sendNow.addEventListener('change', sync);
+        // run once on load
+        sync();
+    })();
+</script>
