@@ -1,60 +1,103 @@
-<%# app/views/admin_notice_mailer/event.html.erb %>
-<%# NOTE: The layout already prints the main heading (@heading), so we do NOT repeat it here. %>
+<%# uses layouts/stint_mailer %>
 
-<%# Strip any raw timestamp at the end of @message like: " ... at 2025-10-28 10:01:32 +0000." %>
-<%
-  msg = @message.to_s.dup
-  time_was_in_message = false
-
-  if msg =~ /\s+at\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+[A-Z\+\d:]+\.?\z/
-    msg = msg.sub(/\s+at\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+[A-Z\+\d:]+\.?\z/, "")
-    time_was_in_message = true
-  end
-
-  readable_time = Time.current.strftime("%A, %d %B %Y at %H:%M %Z")
-%>
-
-<table role="presentation" width="100%" style="width:100%; border-collapse:collapse;">
-  <tr>
-    <td style="font-size:16px; line-height:1.6; color:rgba(255,255,255,0.85); padding-bottom:16px;">
-      <%= msg %>
-    </td>
-  </tr>
-
-  <%# Only show a separate, nicely formatted time if the original message contained a raw timestamp %>
-  <% if time_was_in_message %>
+<%# ---- Meta line (actor + time) ---- %>
+<% if @actor.present? && @when_str.present? %>
+  <table role="presentation" width="100%" style="border-collapse:collapse;">
     <tr>
-      <td style="font-size:14px; line-height:1.6; color:#999999; padding-bottom:20px;">
-        Time of change: <span style="color:#A49EF2;"><%= readable_time %></span>
+      <td style="font-size:14px; line-height:1.6; color:rgba(255,255,255,0.85); padding-bottom:16px;">
+        <% display_time = begin
+                            # @when_str might be a String; try to parse + format it nicely.
+                            t = (@when_str.is_a?(Time) || @when_str.is_a?(ActiveSupport::TimeWithZone)) ? @when_str : Time.zone.parse(@when_str.to_s)
+                            tz = (defined?(AppSetting) && AppSetting.instance&.timezone.presence) || Time.zone.name
+                            t ? t.in_time_zone(tz).strftime("%A, %-d %B %Y at %H:%M %Z") : @when_str
+                          rescue
+                            @when_str
+                          end %>
+        Changed by <strong><%= @actor %></strong> at <strong><%= display_time %></strong>.
       </td>
     </tr>
-  <% end %>
+  </table>
+<% elsif @message.present? %>
+  <table role="presentation" width="100%" style="border-collapse:collapse;">
+    <tr>
+      <td style="font-size:14px; line-height:1.6; color:rgba(255,255,255,0.85); padding-bottom:16px;">
+        <%= @message %>
+      </td>
+    </tr>
+  </table>
+<% end %>
 
-  <tr>
-    <td style="font-size:16px; line-height:1.6; color:#ffffff; padding:8px 0;">
-      What is a cron job?
-    </td>
-  </tr>
-  <tr>
-    <td style="font-size:14px; line-height:1.8; color:rgba(255,255,255,0.85); padding-bottom:16px;">
-      A cron job is an automated task that runs at regular intervals. In this system it is responsible for checking and sending scheduled campaigns through Mandrill without manual action.
-    </td>
-  </tr>
+<%# ---- Explainer blocks (auto-select by kind) ---- %>
+<% kind = @kind.presence ||
+  ( @heading.to_s.downcase.include?("cron") ? "cron" :
+      @heading.to_s.downcase.include?("hold") ? "hold" :
+        @heading.to_s.downcase.include?("release") ? "release" : "generic" ) %>
 
-  <tr>
-    <td style="font-size:16px; line-height:1.6; color:#ffffff; padding:8px 0;">
-      Current state
-    </td>
-  </tr>
-  <tr>
-    <td style="font-size:14px; line-height:1.8; color:rgba(255,255,255,0.85);">
-      <% if @message.to_s.downcase.include?("enabled") %>
-        Cron is enabled. The scheduler now runs automatically and any due campaigns will be sent as planned.
-      <% elsif @message.to_s.downcase.include?("disabled") %>
-        Cron is disabled. The scheduler is paused and no campaigns will be sent until it is turned on again.
-      <% else %>
-        The scheduler state has changed. Check the dashboard for details.
-      <% end %>
-    </td>
-  </tr>
-</table>
+<% if kind == "hold" || kind == "release" %>
+  <% on_hold = (kind == "hold") %>
+
+  <table role="presentation" width="100%" style="border-collapse:collapse;">
+    <tr>
+      <td style="font-size:16px; line-height:1.6; color:#ffffff; padding:8px 0 4px;">
+        What does “on hold” mean?
+      </td>
+    </tr>
+    <tr>
+      <td style="font-size:14px; line-height:1.7; color:rgba(255,255,255,0.85); padding-bottom:18px;">
+        When schedules are on hold, no campaign will be sent, even if a send time has been reached.
+        Once you release the hold, sending resumes according to each campaign’s schedule.
+      </td>
+    </tr>
+
+    <tr>
+      <td style="font-size:16px; line-height:1.6; color:#ffffff; padding:8px 0 4px;">
+        Current state
+      </td>
+    </tr>
+    <tr>
+      <td style="font-size:14px; line-height:1.7; color:rgba(255,255,255,0.85);">
+        <% if on_hold %>
+          Schedules are <strong>on hold</strong>. No campaigns will be sent until you release them.
+        <% else %>
+          Schedules are <strong>active</strong>. Future campaigns will send at their scheduled time unless paused or deleted.
+        <% end %>
+      </td>
+    </tr>
+  </table>
+
+<% elsif kind == "cron" %>
+  <table role="presentation" width="100%" style="border-collapse:collapse;">
+    <tr>
+      <td style="font-size:16px; line-height:1.6; color:#ffffff; padding:8px 0 4px;">
+        What is a cron job?
+      </td>
+    </tr>
+    <tr>
+      <td style="font-size:14px; line-height:1.7; color:rgba(255,255,255,0.85); padding-bottom:18px;">
+        A cron job is an automated task that runs at set intervals. In this system it checks and sends due
+        campaigns through Mandrill without manual action.
+      </td>
+    </tr>
+
+    <tr>
+      <td style="font-size:16px; line-height:1.6; color:#ffffff; padding:8px 0 4px;">
+        Current state
+      </td>
+    </tr>
+    <tr>
+      <td style="font-size:14px; line-height:1.7; color:rgba(255,255,255,0.85);">
+        <%= @message.to_s.include?("enabled") ? "Cron is enabled. The scheduler is active and will run on its regular interval." :
+              "Cron is disabled. The scheduler is paused and will not run until re-enabled." %>
+      </td>
+    </tr>
+  </table>
+
+<% else %>
+  <table role="presentation" width="100%" style="border-collapse:collapse;">
+    <tr>
+      <td style="font-size:14px; line-height:1.7; color:rgba(255,255,255,0.85);">
+        <%= @message %>
+      </td>
+    </tr>
+  </table>
+<% end %>

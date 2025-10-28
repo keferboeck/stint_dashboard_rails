@@ -18,11 +18,40 @@ class Admin::SettingsController < ApplicationController
     end
   end
 
+  # app/controllers/admin/settings_controller.rb
   def hold_all_schedules
-    s = AppSetting.instance
-    s.update!(scheduling_on_hold: true)
-    notify_event!(:schedules_on_hold, "All schedules put on hold", icon: :red)
-    redirect_to admin_settings_path, notice: "All schedules put on hold."
+    @settings = AppSetting.instance
+    was_on_hold = @settings.scheduling_on_hold
+    @settings.update!(scheduling_on_hold: !was_on_hold)
+
+    # email
+    tz      = @settings.timezone.presence || "Europe/London"
+    when_str = Time.current.in_time_zone(tz).strftime("%A, %d %B  %Y at %H:%M %Z")
+    on      = @settings.scheduling_on_hold
+    title   = on ? "Schedules put on hold" : "Schedules released"
+    severity = on ? :warning : :success
+    message = "#{title} by #{current_user.email} at #{when_str}."
+
+    AdminNoticeMailer.event(
+      to: admin_recipients_for_env,
+      title: title,
+      message: message,
+      severity: severity
+    ).deliver_later
+
+    respond_to do |format|
+      if request.format.turbo_stream?
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.replace(
+            "admin_settings_safety",
+            partial: "admin/settings/safety",
+            locals: { settings: @settings }
+          )
+        end
+      else
+        format.html { redirect_to admin_settings_path, notice: title }
+      end
+    end
   end
 
   def purge_future_schedules
@@ -83,8 +112,10 @@ class Admin::SettingsController < ApplicationController
 
   def admin_recipients_for_env
     emails = User.where(role: "admin").pluck(:email)
-    emails = emails.select { |e| e.end_with?("@keferboeck.com") } if Rails.env.development?
-    emails
+    if Rails.env.development?
+      emails = emails.select { |e| e.ends_with?("@keferboeck.com") }
+    end
+    emails.presence || [ENV.fetch("FALLBACK_ADMIN_EMAIL", "georg@keferboeck.com")]
   end
 
   def notify_settings_updated!(changed_keys)
