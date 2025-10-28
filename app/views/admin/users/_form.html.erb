@@ -1,5 +1,5 @@
 <!-- app/views/admin/users/_form.html.erb -->
-<%= form_with model: @user, url: request.path, class: "space-y-6" do |f| %>
+<%= form_with model: [:admin, @user], class: "space-y-6" do |f| %>
   <div class="grid md:grid-cols-2 gap-4">
     <div>
       <%= f.label :first_name, class: "block text-sm mb-1" %>
@@ -32,13 +32,13 @@
       <label class="flex items-center gap-2"><%= f.check_box :notify_summary_all %> (C) Summary after run any</label>
 
       <label class="flex items-center gap-2">
-        <%= f.check_box :notify_new_scheduled_mine, { checked: is_new ? true : !!@user.notify_new_scheduled_mine }, "1", "0" %> (D) New campaigns own
+        <%= f.check_box :notify_new_scheduled_mine %> (D) New campaigns own
       </label>
       <label class="flex items-center gap-2">
-        <%= f.check_box :notify_copy_mine, { checked: is_new ? true : !!@user.notify_copy_mine }, "1", "0" %> (E) Copy of sent own
+        <%= f.check_box :notify_copy_mine %> (E) Copy of sent own
       </label>
       <label class="flex items-center gap-2">
-        <%= f.check_box :notify_summary_mine, { checked: is_new ? true : !!@user.notify_summary_mine }, "1", "0" %> (F) Summary after run own
+        <%= f.check_box :notify_summary_mine %> (F) Summary after run own
       </label>
     </div>
 
@@ -92,7 +92,4 @@
             }
         }
 
-        apply(wrap.dataset.userRoleInitial || "viewer");
-        if (roleSelect) roleSelect.addEventListener("change", e => apply(e.target.value));
-    });
-</script>
+        apply(wrap.dataset.userRoleIn
