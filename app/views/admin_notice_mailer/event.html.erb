@@ -1,6 +1,60 @@
-<% content_for :title, @heading %>
-<% content_for :heading, @heading %>
+<%# app/views/admin_notice_mailer/event.html.erb %>
+<%# NOTE: The layout already prints the main heading (@heading), so we do NOT repeat it here. %>
 
-<p style="margin:0 0 16px 0;">
-  <%= @message %>
-</p>
+<%# Strip any raw timestamp at the end of @message like: " ... at 2025-10-28 10:01:32 +0000." %>
+<%
+  msg = @message.to_s.dup
+  time_was_in_message = false
+
+  if msg =~ /\s+at\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+[A-Z\+\d:]+\.?\z/
+    msg = msg.sub(/\s+at\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+[A-Z\+\d:]+\.?\z/, "")
+    time_was_in_message = true
+  end
+
+  readable_time = Time.current.strftime("%A, %d %B %Y at %H:%M %Z")
+%>
+
+<table role="presentation" width="100%" style="width:100%; border-collapse:collapse;">
+  <tr>
+    <td style="font-size:16px; line-height:1.6; color:rgba(255,255,255,0.85); padding-bottom:16px;">
+      <%= msg %>
+    </td>
+  </tr>
+
+  <%# Only show a separate, nicely formatted time if the original message contained a raw timestamp %>
+  <% if time_was_in_message %>
+    <tr>
+      <td style="font-size:14px; line-height:1.6; color:#999999; padding-bottom:20px;">
+        Time of change: <span style="color:#A49EF2;"><%= readable_time %></span>
+      </td>
+    </tr>
+  <% end %>
+
+  <tr>
+    <td style="font-size:16px; line-height:1.6; color:#ffffff; padding:8px 0;">
+      What is a cron job?
+    </td>
+  </tr>
+  <tr>
+    <td style="font-size:14px; line-height:1.8; color:rgba(255,255,255,0.85); padding-bottom:16px;">
+      A cron job is an automated task that runs at regular intervals. In this system it is responsible for checking and sending scheduled campaigns through Mandrill without manual action.
+    </td>
+  </tr>
+
+  <tr>
+    <td style="font-size:16px; line-height:1.6; color:#ffffff; padding:8px 0;">
+      Current state
+    </td>
+  </tr>
+  <tr>
+    <td style="font-size:14px; line-height:1.8; color:rgba(255,255,255,0.85);">
+      <% if @message.to_s.downcase.include?("enabled") %>
+        Cron is enabled. The scheduler now runs automatically and any due campaigns will be sent as planned.
+      <% elsif @message.to_s.downcase.include?("disabled") %>
+        Cron is disabled. The scheduler is paused and no campaigns will be sent until it is turned on again.
+      <% else %>
+        The scheduler state has changed. Check the dashboard for details.
+      <% end %>
+    </td>
+  </tr>
+</table>

@@ -10,8 +10,7 @@ class Admin::SettingsController < ApplicationController
   def update
     @settings = AppSetting.instance
     if @settings.update(settings_params)
-      changed_keys = @settings.saved_changes.keys - %w[id created_at updated_at]
-      notify_settings_updated!(changed_keys) if changed_keys.any?
+      notify_event!(:settings_updated, "Settings saved", icon: :black)
       redirect_to admin_settings_path, notice: "Settings saved."
     else
       flash.now[:alert] = @settings.errors.full_messages.to_sentence
@@ -20,30 +19,15 @@ class Admin::SettingsController < ApplicationController
   end
 
   def hold_all_schedules
-    @settings = AppSetting.instance
-    @settings.update!(scheduling_on_hold: true)
-
-    notify_event!(
-      title:   "All schedules put on hold",
-      message: "Scheduling has been paused by #{current_user.email}",
-      severity: :warning
-    )
-
-    respond_to do |format|
-      format.turbo_stream { render turbo_stream_replace_safety }
-      format.html { redirect_to admin_settings_path, notice: "All schedules put on hold." }
-    end
+    s = AppSetting.instance
+    s.update!(scheduling_on_hold: true)
+    notify_event!(:schedules_on_hold, "All schedules put on hold", icon: :red)
+    redirect_to admin_settings_path, notice: "All schedules put on hold."
   end
 
   def purge_future_schedules
-    unless params[:confirm] == "YES"
-      respond_to do |format|
-        format.turbo_stream do
-          flash.now[:alert] = "Confirmation missing. Type YES to proceed."
-          render turbo_stream_replace_safety
-        end
-        format.html { redirect_to admin_settings_path, alert: "Confirmation missing. Type YES to proceed." }
-      end
+    if params[:confirm] != "YES"
+      redirect_to admin_settings_path, alert: "Confirmation missing. Type YES to proceed."
       return
     end
 
@@ -56,50 +40,26 @@ class Admin::SettingsController < ApplicationController
       end
     end
 
-    notify_event!(
-      title:   "Purged #{count} future campaign(s)",
-      message: "#{current_user.email} deleted all campaigns scheduled after #{Time.zone.now}",
-      severity: :critical
-    )
-
-    respond_to do |format|
-      format.turbo_stream do
-        flash.now[:notice] = "Purged #{count} future campaign(s)."
-        render turbo_stream_replace_safety
-      end
-      format.html { redirect_to admin_settings_path, notice: "Purged #{count} future campaign(s)." }
-    end
+    notify_event!(:purged_future, "Purged #{count} future campaign(s)", icon: :red)
+    redirect_to admin_settings_path, notice: "Purged #{count} future campaign(s)."
   end
 
   def toggle_cron
-    @settings = AppSetting.instance
-    @settings.update!(cron_enabled: !@settings.cron_enabled)
-    state = @settings.cron_enabled ? "enabled" : "disabled"
+    s = AppSetting.instance
+    new_state = !s.cron_enabled
+    s.update!(cron_enabled: new_state)
 
-    notify_event!(
-      title:   "Cron #{state}",
-      message: "Cron job execution was #{state} by #{current_user.email}",
-      severity: @settings.cron_enabled ? :success : :warning
-    )
+    tz      = s.timezone.presence || "Europe/London"
+    title   = new_state ? "Cron enabled" : "Cron disabled"   # ← no dot here
+    message = "Cron runner has been #{new_state ? 'enabled' : 'disabled'} by #{current_user.email} at #{Time.current.in_time_zone(tz)}."
+    severity = new_state ? :success : :info
 
-    respond_to do |format|
-      format.turbo_stream do
-        flash.now[:notice] = "Cron #{state}."
-        render turbo_stream_replace_safety
-      end
-      format.html { redirect_to admin_settings_path, notice: "Cron #{state}." }
-    end
+    notify_event!(title: title, message: message, severity: severity)
+
+    redirect_to admin_settings_path, notice: (new_state ? "Cron enabled." : "Cron disabled.")
   end
 
   private
-
-  def turbo_stream_replace_safety
-    turbo_stream.replace(
-      "safety_frame",
-      partial: "admin/settings/safety",
-      locals: { settings: @settings }
-    )
-  end
 
   def require_admin!
     redirect_to dashboard_path, alert: "Not authorized." unless current_user&.admin?
@@ -109,12 +69,22 @@ class Admin::SettingsController < ApplicationController
     params.require(:app_setting).permit(:timezone)
   end
 
-  # --- notifications you already wired; no change to how emails are sent ---
   def notify_event!(title:, message:, severity: :info)
     recipients = admin_recipients_for_env
-    return if recipients.empty?
-    mail = AdminNoticeMailer.event(to: recipients, title: title, message: message, severity: severity)
-    Rails.env.development? ? mail.deliver_now : mail.deliver_later
+    return if recipients.blank?
+
+    AdminNoticeMailer.event(
+      to: recipients,              # mailer will handle array or string
+      title: title,                # ← plain title, no emoji
+      message: message,
+      severity: severity
+    ).deliver_later
+  end
+
+  def admin_recipients_for_env
+    emails = User.where(role: "admin").pluck(:email)
+    emails = emails.select { |e| e.end_with?("@keferboeck.com") } if Rails.env.development?
+    emails
   end
 
   def notify_settings_updated!(changed_keys)
@@ -122,11 +92,5 @@ class Admin::SettingsController < ApplicationController
     return if recipients.empty?
     mail = AdminNoticeMailer.settings_updated(to: recipients, changed_keys: changed_keys, actor: current_user)
     Rails.env.development? ? mail.deliver_now : mail.deliver_later
-  end
-
-  def admin_recipients_for_env
-    scope  = User.where(role: "admin")
-    emails = Rails.env.development? ? scope.where("email ILIKE ?", "%@keferboeck.com").pluck(:email) : scope.pluck(:email)
-    emails.uniq
   end
 end
