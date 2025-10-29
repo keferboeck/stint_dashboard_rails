@@ -2,15 +2,28 @@
 class Admin::CampaignsController < ApplicationController
   before_action :require_manager_or_admin!, only: [:new, :create, :reschedule, :send_now, :destroy]
 
-  def index
-    @future = Campaign.where(status: "SCHEDULED").order(:scheduled_at)
-    @past   = Campaign.where(status: %w[SENT FAILED PARTIAL]).order(scheduled_at: :desc)
-    respond_to do |format|
-      format.html
-      format.json { render json: { future: @future, past: @past } }
-    end
-  end
 
+
+  def index
+    now = Time.current
+
+    # 1) Future scheduled (not yet due)
+    @scheduled = Campaign
+                   .where(status: "SCHEDULED")
+                   .where("scheduled_at IS NOT NULL AND scheduled_at > ?", now)
+                   .order(:scheduled_at)
+
+    # 2) Due (scheduled in the past or now, but still SCHEDULED)
+    @due = Campaign
+             .where(status: "SCHEDULED")
+             .where("scheduled_at IS NOT NULL AND scheduled_at <= ?", now)
+             .order(:scheduled_at)
+
+    # 3) Past (already processed: SENT/FAILED OR immediate sends with any status != SCHEDULED)
+    @past = Campaign
+              .where.not(status: "SCHEDULED")
+              .order(Arel.sql("COALESCE(scheduled_at, created_at) DESC"))
+  end
   def show
     @campaign = Campaign.includes(:emails).find(params[:id])
     respond_to do |format|

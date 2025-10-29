@@ -1,18 +1,29 @@
 module CampaignsHelper
-  # Heuristic: if scheduled_at exists and is ~ the created time, we treat it as "Send now"
-  def delivery_badge(campaign)
-    label =
-      if campaign.scheduled_at.present?
-        campaign.scheduled_at.future? ? "Scheduled" : "Send now"
-      else
-        "Send now"
-      end
+  def immediate_send?(c)
+    return true if c.scheduled_at.blank?
+    return false if c.status == "SCHEDULED"
+    # heuristic: scheduled_at ~= created_at means it was an immediate fire
+    (c.scheduled_at - c.created_at).abs <= 2.minutes
+  end
 
-    content_tag(
-      :span,
-      label,
-      class: "inline-block px-2 py-0.5 rounded bg-white/10"
-    )
+  def delivery_badge(c)
+    now = Time.current
+
+    if immediate_send?(c)
+      return content_tag(:span, "Send now", class: "px-2 py-0.5 rounded bg-emerald-600/20 text-emerald-200")
+    end
+
+    # scheduled_at present and not immediate
+    if c.scheduled_at > now
+      content_tag(:span, "Scheduled", class: "px-2 py-0.5 rounded bg-blue-600/20 text-blue-200")
+    else
+      if c.status == "SCHEDULED"
+        content_tag(:span, "Due", class: "px-2 py-0.5 rounded bg-amber-600/20 text-amber-200")
+      else
+        # processed scheduled run
+        content_tag(:span, "Scheduled", class: "px-2 py-0.5 rounded bg-blue-600/20 text-blue-200")
+      end
+    end
   end
 
   # Show scheduler user if present

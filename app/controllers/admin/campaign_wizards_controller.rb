@@ -162,6 +162,7 @@ class Admin::CampaignWizardsController < ApplicationController
 
   # POST /admin/campaign_wizard/finalize
   # POST /admin/campaign_wizard/finalize
+  # POST /admin/campaign_wizard/finalize
   def finalize
     token = params.dig(:campaign, :token)
 
@@ -194,14 +195,17 @@ class Admin::CampaignWizardsController < ApplicationController
       return redirect_to configure_admin_campaign_wizard_path(token: @temp_upload.token)
     end
 
+    # KEY CHANGE:
+    # - For "Send now" we do NOT set scheduled_at (leave it nil).
+    #   That lets the UI reliably render "Send now".
     scheduled_at_utc =
       if send_now
-        Time.current.utc
+        nil
       elsif local_time.present?
         parse_london_wall_to_utc(local_time)
       end
 
-    campaign = Campaign.new(
+    campaign_attrs = {
       name:          "CSV import #{Time.current.to_i}",
       template_name: template,
       subject:       subject,
@@ -209,24 +213,29 @@ class Admin::CampaignWizardsController < ApplicationController
       scheduled_at:  scheduled_at_utc,
       status:        "SCHEDULED",
       user:          current_user
-    )
+    }
+
+    # If you added the boolean column `immediate` (proper fix), set it:
+    campaign_attrs[:immediate] = true if Campaign.column_names.include?("immediate") && send_now
+
+    campaign = Campaign.new(campaign_attrs)
 
     recipients.each do |r|
       campaign.emails.build(
-        address: r.email,
+        address:       r.email,
         custom_fields: r.fields,
-        status: "PENDING"
+        status:        "PENDING"
       )
     end
 
     Campaign.transaction do
       campaign.save!
-      notify_new_campaign(campaign)
+      notify_new_campaign(campaign)  # your existing notifier
       @temp_upload.destroy!
       session.delete(:campaign_wizard)
     end
 
-    # enqueue AFTER commit, and use the job you actually have
+    # Fire immediately only after commit
     CronTickJob.perform_later(campaign.id) if send_now
 
     flash[:notice] = send_now ? "Campaign is sending." : "Campaign scheduled."
