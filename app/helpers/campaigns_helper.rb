@@ -34,4 +34,29 @@ module CampaignsHelper
       "—"
     end
   end
+
+  def campaign_sent_counts(campaign)
+    counts  = campaign.emails.group(:status).count
+    sent    = counts["SENT"].to_i
+    failed  = counts["FAILED"].to_i
+    pending = counts["PENDING"].to_i
+    total   = campaign.emails.size
+    [sent, failed, pending, total]
+  end
+
+  # Status label + tone for PAST table
+  # SENT: all sent
+  # FAILED: all failed (and none sent/pending)
+  # PARTIAL: any mix (some sent, some failed/pending)
+  def past_status_badge(campaign)
+    sent, failed, pending, total = campaign_sent_counts(campaign)
+
+    if total > 0 && sent == total
+      ["SENT", "bg-emerald-500/15 text-emerald-200"]
+    elsif total > 0 && sent.zero? && pending.zero? && failed == total
+      ["FAILED", "bg-red-500/15 text-red-200"]
+    else
+      ["PARTIAL", "bg-amber-500/15 text-amber-200"]
+    end
+  end
 end

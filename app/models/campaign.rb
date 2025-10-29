@@ -8,4 +8,5 @@ class Campaign < ApplicationRecord
   validates :subject, presence: true
 
   scope :due, -> { where(status: 'SCHEDULED').where('scheduled_at <= ?', Time.current) }
+  scope :scheduled_future, -> { where(status: 'SCHEDULED').where("scheduled_at > ?", Time.current) }
 end

@@ -114,6 +114,7 @@
             <th class="text-left px-4 py-2 border-b border-white/10">Name</th>
             <th class="text-left px-4 py-2 border-b border-white/10">Template</th>
             <th class="text-left px-4 py-2 border-b border-white/10">Recipients</th>
+            <th class="text-left px-4 py-2 border-b border-white/10">Sent</th> <!-- NEW -->
             <th class="text-left px-4 py-2 border-b border-white/10">Delivery</th>
             <th class="text-left px-4 py-2 border-b border-white/10">Ran at (UK)</th>
             <th class="text-left px-4 py-2 border-b border-white/10">By</th>
@@ -123,10 +124,13 @@
           </thead>
           <tbody>
           <% @past.each do |c| %>
+            <% sent, failed, pending, total = campaign_sent_counts(c) %>
+            <% label, tone = past_status_badge(c) %>
             <tr class="odd:bg-white/[0.03]">
               <td class="px-4 py-2"><%= c.name %></td>
               <td class="px-4 py-2"><%= c.template_name %></td>
-              <td class="px-4 py-2"><%= c.emails.count %></td>
+              <td class="px-4 py-2"><%= total %></td>
+              <td class="px-4 py-2"><%= "#{sent}/#{total}" %></td> <!-- NEW -->
               <td class="px-4 py-2"><%= delivery_badge(c) %></td>
               <td class="px-4 py-2">
                 <% if c.scheduled_at %>
@@ -137,7 +141,7 @@
               </td>
               <td class="px-4 py-2"><%= campaign_scheduler(c) %></td>
               <td class="px-4 py-2">
-                <span class="px-2 py-0.5 rounded bg-white/10"><%= c.status %></span>
+                <span class="px-2 py-0.5 rounded <%= tone %>"><%= label %></span>
               </td>
               <td class="px-4 py-2">
                 <%= link_to "Open", admin_campaign_path(c),

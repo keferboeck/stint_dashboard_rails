@@ -1,3 +1,4 @@
+<!-- app/views/dashboard/index.html.erb -->
 <div class="space-y-6">
   <div>
     <h1 class="text-h3 font-semibold">Welcome, <%= current_user.first_name %></h1>
@@ -7,17 +8,17 @@
   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
     <div class="rounded-2xl bg-white/5 border border-white/10 p-5">
       <div class="text-sm text-white/60 mb-2">Campaigns</div>
-      <div class="text-3xl font-semibold">—</div>
+      <div class="text-3xl font-semibold"><%= @campaigns_count %></div>
     </div>
 
     <div class="rounded-2xl bg-white/5 border border-white/10 p-5">
       <div class="text-sm text-white/60 mb-2">Scheduled</div>
-      <div class="text-3xl font-semibold">—</div>
+      <div class="text-3xl font-semibold"><%= @scheduled_count %></div>
     </div>
 
     <div class="rounded-2xl bg-white/5 border border-white/10 p-5">
       <div class="text-sm text-white/60 mb-2">Delivered (24h)</div>
-      <div class="text-3xl font-semibold">—</div>
+      <div class="text-3xl font-semibold"><%= @delivered_24h %></div>
     </div>
   </div>
 
@@ -26,6 +27,104 @@
       <h2 class="text-xl font-semibold">Recent activity</h2>
       <%= link_to "View campaigns", admin_campaigns_path, class: "text-sm text-brand-purple hover:underline" %>
     </div>
-    <div class="text-white/60 text-sm">Nothing here yet.</div>
+
+    <% if @recent_campaigns.blank? %>
+      <div class="text-white/60 text-sm">Nothing here yet.</div>
+    <% else %>
+      <div class="overflow-auto rounded-xl border border-white/10">
+        <table class="min-w-full text-sm">
+          <thead class="bg-black/40 backdrop-blur">
+          <tr>
+            <th class="text-left px-4 py-2 border-b border-white/10">Name</th>
+            <th class="text-left px-4 py-2 border-b border-white/10">Template</th>
+            <th class="text-left px-4 py-2 border-b border-white/10">Sent</th>
+            <th class="text-left px-4 py-2 border-b border-white/10">Failed</th>
+            <th class="text-left px-4 py-2 border-b border-white/10">Pending</th>
+            <th class="text-left px-4 py-2 border-b border-white/10">Total</th>
+            <th class="text-left px-4 py-2 border-b border-white/10">Created (UK)</th>
+            <th class="text-left px-4 py-2 border-b border-white/10"></th>
+          </tr>
+          </thead>
+          <tbody>
+          <% @recent_campaigns.each do |c| %>
+            <% sent, failed, pending, total = campaign_sent_counts(c) %>
+            <tr class="odd:bg-white/[0.03]">
+              <td class="px-4 py-2"><%= c.name %></td>
+              <td class="px-4 py-2"><%= c.template_name %></td>
+              <td class="px-4 py-2"><%= sent %></td>
+              <td class="px-4 py-2"><%= failed %></td>
+              <td class="px-4 py-2"><%= pending %></td>
+              <td class="px-4 py-2"><%= total %></td>
+              <td class="px-4 py-2"><%= c.created_at.in_time_zone("Europe/London").strftime("%Y-%m-%d %H:%M") %></td>
+              <td class="px-4 py-2">
+                <%= link_to "Open", admin_campaign_path(c),
+                            class: "px-2 py-1 rounded bg-white/10 hover:bg-white/15" %>
+              </td>
+            </tr>
+          <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Emails sent per day chart -->
+  <div class="rounded-2xl bg-white/5 border border-white/10 p-5">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xl font-semibold">Emails sent per day</h2>
+      <form method="get" class="flex items-center gap-2">
+        <input type="date" name="from"
+               value="<%= @from_date.strftime('%Y-%m-%d') %>"
+               class="bg-white/10 border border-white/10 rounded px-3 py-1.5 text-white">
+        <span class="text-white/50">to</span>
+        <input type="date" name="to"
+               value="<%= @to_date.strftime('%Y-%m-%d') %>"
+               class="bg-white/10 border border-white/10 rounded px-3 py-1.5 text-white">
+        <button class="px-3 py-1.5 rounded-lg bg-[#121212] text-white border border-white/20 hover:bg-[#A49EF2] transition">
+          Apply
+        </button>
+      </form>
+    </div>
+
+    <div>
+      <canvas id="emailsChart" height="110"></canvas>
+    </div>
   </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    (function () {
+        var ctx = document.getElementById('emailsChart');
+        if (!ctx) return;
+
+        var labels = <%= raw @chart_labels.to_json %>;
+        var data   = <%= raw @chart_counts.to_json %>;
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Sent emails',
+                    data: data,
+                    backgroundColor: '#A49EF2',   // ← brand purple
+                    borderRadius: 6,              // optional, gives smooth rounded tops
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                responsive: true,
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { beginAtZero: true, ticks: { precision: 0 } }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { mode: 'index', intersect: false }
+                }
+            }
+        });
+    })();
+</script>
