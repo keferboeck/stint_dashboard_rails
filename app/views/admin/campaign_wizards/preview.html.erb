@@ -67,14 +67,62 @@
   <div class="mt-6 flex justify-end gap-3">
     <%= button_to "Cancel", cancel_admin_campaign_wizard_path(token: @temp_upload.token),
                   method: :delete,
-                  class: "px-3 py-2 rounded bg-white/5 hover:bg-white/10" %>
+                  class: "px-4 py-2 rounded-lg bg-[#121212] text-white border border-white font-medium" %>
 
     <%= form_with url: configure_admin_campaign_wizard_path(token: @temp_upload.token),
-                  method: :post do %>
-      <%= submit_tag "Continue", class: "px-4 py-2 rounded bg-brand-green/20 hover:bg-brand-green/30" %>
+                  method: :post,
+                  data: { turbo: false },
+                  html: { id: "wizard-continue-form" } do %>
+      <%= submit_tag "Continue",
+                     id: "wizard-continue-btn",
+                     class: "px-4 py-2 rounded-lg bg-[#A49EF2] text-white font-medium hover:bg-[#928AEF] transition" %>
     <% end %>
   </div>
+
+  <!-- Loading overlay (hidden by default) -->
+  <div id="wizard-loading"
+       class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/80">
+    <div class="flex flex-col items-center gap-4 text-white">
+      <!-- spinner -->
+      <div class="h-8 w-8 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
+      <div class="text-sm text-white/80">Loading email templates from Mailchimp…</div>
+    </div>
+  </div>
 </div>
+
+<script>
+    (function () {
+        var form = document.getElementById('wizard-continue-form');
+        if (!form) return;
+
+        var btn  = document.getElementById('wizard-continue-btn');
+        var mask = document.getElementById('wizard-loading');
+
+        var show = function(el){ el.classList.remove('hidden'); el.classList.add('flex'); };
+        var hide = function(el){ el.classList.add('hidden'); el.classList.remove('flex'); };
+
+        form.addEventListener('submit', function (e) {
+            // guard against double clicks
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.add('opacity-60', 'cursor-not-allowed');
+                btn.textContent = 'Loading…';
+            }
+            if (mask) show(mask);
+            // Let the request proceed (no Turbo; full POST + redirect)
+        });
+
+        // Safety: if the page is restored from bfcache, reset UI
+        window.addEventListener('pageshow', function() {
+            if (btn) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-60', 'cursor-not-allowed');
+                btn.textContent = 'Continue';
+            }
+            if (mask) hide(mask);
+        });
+    })();
+</script>
 
 <% if Array(@invalids).any? %>
   <script>

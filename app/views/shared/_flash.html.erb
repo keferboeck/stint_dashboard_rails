@@ -1,10 +1,14 @@
-<div class="fixed top-4 right-4 z-50 space-y-2" id="flash-stack">
+<!-- app/views/shared/_flash.html.erb -->
+<div class="fixed top-4 left-4 z-50 space-y-2" id="flash-stack">
   <% flash.each do |type, message| %>
     <% tone =
          case type.to_s
-         when "notice" then "bg-brand-green/20 text-brand-white border border-brand-green/40"
-         when "alert", "error" then "bg-red-500/20 text-red-200 border border-red-500/40"
-         else "bg-white/10 text-white/90 border border-white/20"
+         when "notice"
+           "bg-[#16E990]/20 text-[#16E990] border border-[#16E990]/40"
+         when "alert", "error"
+           "bg-red-500/20 text-red-200 border border-red-500/40"
+         else
+           "bg-white/10 text-white/90 border border-white/20"
          end %>
     <div
       class="px-4 py-2 rounded-lg shadow-lg <%= tone %> animate-slide-in"
@@ -26,8 +30,6 @@
 
                 setTimeout(function () {
                     el.classList.add('animate-fade-out');
-
-                    // wait a bit longer to actually remove it (1.5s = animation + buffer)
                     var done = function () {
                         if (el && el.parentNode) el.parentNode.removeChild(el);
                     };
