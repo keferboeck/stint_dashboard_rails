@@ -85,11 +85,11 @@
     <% end %>
 
     <!-- Delete -->
-    <%= button_to "Delete campaign",
-                  admin_campaign_path(@campaign),
-                  method: :delete,
-                  form: { data: { turbo_confirm: "Delete this campaign and all its emails?" } },
-                  class: "px-3 py-2 rounded bg-white/10 hover:bg-white/15 text-red-200" %>
+    <button type="button"
+            id="js-open-delete-campaign"
+            class="px-3 py-2 rounded bg-white/10 hover:bg-white/15 text-red-200">
+      Delete campaign
+    </button>
   </div>
 
   <div class="bg-white/5 border border-white/10 rounded-xl">
@@ -123,3 +123,68 @@
     </div>
   </div>
 </div>
+
+<!-- Delete Confirmation Modal -->
+<div id="js-delete-campaign-modal"
+     class="fixed inset-0 z-50 hidden"
+     aria-hidden="true">
+  <!-- Solid backdrop (no transparency) -->
+  <div class="absolute inset-0 bg-black"></div>
+
+  <!-- Modal panel -->
+  <div class="relative h-full w-full flex items-center justify-center p-4">
+    <div class="w-full max-w-md rounded-xl border border-white/10 bg-[#1b1b1b] text-white shadow-xl">
+      <div class="p-5 border-b border-white/10">
+        <h3 class="text-lg font-semibold">Delete campaign</h3>
+      </div>
+
+      <div class="p-5 space-y-3 text-white/80">
+        <p>This will permanently remove this campaign and all associated emails.</p>
+        <p class="text-white/60">This action cannot be undone.</p>
+      </div>
+
+      <div class="p-5 border-t border-white/10 flex items-center justify-end gap-2">
+        <button type="button"
+                id="js-cancel-delete-campaign"
+                class="px-3 py-2 rounded bg-white/10 hover:bg-white/15">
+          Cancel
+        </button>
+
+        <%= form_with url: admin_campaign_path(@campaign),
+                      method: :delete,
+                      local: true do %>
+          <%= submit_tag "Delete permanently",
+                         class: "px-3 py-2 rounded bg-red-600/80 hover:bg-red-600 text-white font-medium" %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const openBtn  = document.getElementById("js-open-delete-campaign");
+        const modal    = document.getElementById("js-delete-campaign-modal");
+        const cancelBtn= document.getElementById("js-cancel-delete-campaign");
+
+        function showModal() {
+            modal.classList.remove("hidden");
+            modal.setAttribute("aria-hidden", "false");
+            document.body.classList.add("overflow-hidden");
+        }
+        function hideModal() {
+            modal.classList.add("hidden");
+            modal.setAttribute("aria-hidden", "true");
+            document.body.classList.remove("overflow-hidden");
+        }
+
+        if (openBtn)  openBtn.addEventListener("click", showModal);
+        if (cancelBtn) cancelBtn.addEventListener("click", hideModal);
+        // Close on backdrop click
+        if (modal) {
+            modal.addEventListener("click", (e) => {
+                if (e.target === modal) hideModal();
+            });
+        }
+    });
+</script>

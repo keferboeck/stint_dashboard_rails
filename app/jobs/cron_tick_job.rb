@@ -6,6 +6,8 @@ class CronTickJob < ApplicationJob
   queue_as :default
 
   def perform(campaign_id)
+    Rails.logger.info("[CronTickJob] perform campaign_id=#{campaign_id} at=#{Time.current.utc}")
+
     campaign = Campaign.find_by(id: campaign_id)
     unless campaign
       Rails.logger.warn("[CronTickJob] campaign #{campaign_id} not found")
