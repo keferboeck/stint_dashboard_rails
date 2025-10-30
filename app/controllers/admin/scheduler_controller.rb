@@ -1,7 +1,6 @@
 # app/controllers/admin/scheduler_controller.rb
 class Admin::SchedulerController < ApplicationController
-  # This endpoint is called by your DO cron/worker via curl.
-  # It must be CSRF-exempt and auth-less, guarded by a token.
+  # Called by DO cron via curl. CSRF-exempt + auth-less, guarded by token.
   skip_before_action :verify_authenticity_token
   skip_before_action :authenticate_user!
 
@@ -13,21 +12,24 @@ class Admin::SchedulerController < ApplicationController
       return render plain: "forbidden", status: :forbidden
     end
 
+    # ---- Sentry Cron: start check-in (no-op if not configured)
+    check_in_id = sentry_check_in_start!
+
     settings = AppSetting.instance
 
     if settings.scheduling_on_hold
       Rails.logger.info("[scheduler#run] scheduling_on_hold=TRUE — skip")
-      return render json: { ok: true, held: true, cron_enabled: settings.cron_enabled, picked: 0 }
+      return finish_ok(check_in_id, picked: 0, held: true, cron: settings.cron_enabled)
     end
 
     unless settings.cron_enabled
       Rails.logger.info("[scheduler#run] cron_enabled=FALSE — skip")
-      return render json: { ok: true, held: false, cron_enabled: false, picked: 0 }
+      return finish_ok(check_in_id, picked: 0, held: false, cron: false)
     end
 
-    now = Time.current
-    due_scope = Campaign.where(status: "SCHEDULED").where("scheduled_at <= ?", now)
-    due_ids   = due_scope.limit(200).pluck(:id) # hard cap to avoid stampede
+    now      = Time.current
+    due_ids  = Campaign.where(status: "SCHEDULED").where("scheduled_at <= ?", now)
+                       .limit(200).pluck(:id) # hard cap to avoid stampede
 
     picked = 0
     due_ids.each do |cid|
@@ -36,9 +38,11 @@ class Admin::SchedulerController < ApplicationController
     end
 
     Rails.logger.info("[scheduler#run] enqueued=#{picked}")
-    render json: { ok: true, held: false, cron_enabled: true, picked: picked, at: now.utc }
+    finish_ok(check_in_id, picked: picked, held: false, cron: true, at: now.utc)
   rescue => e
     Rails.logger.error("[scheduler#run] ERROR #{e.class}: #{e.message}")
+    Sentry.capture_exception(e) if defined?(Sentry)
+    sentry_check_in_finish!(check_in_id, :error)
     render json: { ok: false, error: "#{e.class}: #{e.message}" }, status: :internal_server_error
   end
 
@@ -47,10 +51,55 @@ class Admin::SchedulerController < ApplicationController
   def valid_token?(token)
     return false if token.blank?
 
-    # Use CRON_TOKEN in all envs. In development also allow a fixed dev token.
     expected = ENV["CRON_TOKEN"].to_s
-    return true if expected.present? && ActiveSupport::SecurityUtils.secure_compare(token.to_s, expected)
+    return true if expected.present? &&
+      ActiveSupport::SecurityUtils.secure_compare(token.to_s, expected)
 
     Rails.env.development? && token == "dev-only-token"
+  end
+
+  # ---------- Sentry helpers (safe no-ops if not configured) ----------
+
+  # Start a Sentry Cron check-in and return check_in_id (or nil).
+  def sentry_check_in_start!
+    return nil unless defined?(Sentry)
+
+    slug = ENV["SENTRY_CRON_MONITOR_SLUG"].presence
+    return nil unless slug # skip quietly if not set
+
+    # DO cron = every 15 min; small margin; reasonable max runtime.
+    monitor_config = Sentry::Cron::MonitorConfig.from_interval(
+      15, :minute,
+      checkin_margin: 5,
+      max_runtime: 10,
+      timezone: "Europe/Vienna"
+    )
+
+    Sentry.capture_check_in(slug, :in_progress, monitor_config: monitor_config)
+  rescue => e
+    Rails.logger.warn "[sentry-cron] start check-in failed: #{e.class}: #{e.message}"
+    nil
+  end
+
+  # Finish the check-in with :ok or :error.
+  def sentry_check_in_finish!(check_in_id, status)
+    return unless defined?(Sentry)
+
+    slug = ENV["SENTRY_CRON_MONITOR_SLUG"].presence
+    return unless slug
+
+    if check_in_id
+      Sentry.capture_check_in(slug, status, check_in_id: check_in_id)
+    else
+      Sentry.capture_check_in(slug, status)
+    end
+  rescue => e
+    Rails.logger.warn "[sentry-cron] finish check-in failed: #{e.class}: #{e.message}"
+  end
+
+  # Common OK exit that also closes the Sentry check-in.
+  def finish_ok(check_in_id, picked:, held:, cron:, at: Time.current.utc)
+    sentry_check_in_finish!(check_in_id, :ok)
+    render json: { ok: true, held: held, cron_enabled: cron, picked: picked, at: at }
   end
 end
