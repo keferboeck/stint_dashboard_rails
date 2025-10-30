@@ -52,4 +52,9 @@ Rails.application.routes.draw do
 
   get "/up", to: proc { [200, { "Content-Type" => "text/plain" }, ["OK"]] }
   get "/health", to: proc { [200, { "Content-Type" => "application/json" }, [{ ok: true }.to_json]] }
+
+  get "/debug/sentry" => proc {
+    Sentry.capture_message("Manual Sentry test from #{Rails.env}")
+    [200, {}, ["Sent!"]]
+  }
 end

@@ -11,7 +11,8 @@
 
   <link rel="icon" type="image/svg+xml" href="<%= asset_path('favicon.svg') %>">
 
-</head>
+  <%= Sentry.get_trace_propagation_meta.html_safe %>
+  </head>
 
 <body data-controller="campaign-wizard"
       class="min-h-screen bg-[#0a0a0a] text-brand-white font-sans">
