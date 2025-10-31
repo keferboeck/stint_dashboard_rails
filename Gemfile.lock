@@ -145,7 +145,7 @@ GEM
     jbuilder (2.14.1)
       actionview (>= 7.0.0)
       activesupport (>= 7.0.0)
-    json (2.13.2)
+    json (2.15.0)
     kamal (2.7.0)
       activesupport (>= 7.0)
       base64 (~> 0.2)
@@ -179,7 +179,7 @@ GEM
       net-imap
       net-pop
       net-smtp
-    mailchimp_transactional (1.0.4)
+    mailchimp_transactional (2.0.0)
       json (~> 2.1, >= 2.1.0)
       typhoeus (~> 1.0, >= 1.0.1)
     marcel (1.0.4)
@@ -419,7 +419,7 @@ DEPENDENCIES
   jbuilder
   kamal
   letter_opener_web (~> 2.0)
-  mailchimp_transactional (~> 1.0)
+  mailchimp_transactional (~> 2.0)
   pg (~> 1.1)
   premailer-rails
   propshaft
